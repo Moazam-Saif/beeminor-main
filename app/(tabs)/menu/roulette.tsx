@@ -24,25 +24,26 @@ type Prize = {
   flowersAmount?: number;
   color: string;
   weight: number;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 };
 
 const PRIZES: Prize[] = [
-  { id: '1', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 20 },
-  { id: '2', label: '1000', type: 'flowers', flowersAmount: 1000, color: '#FFF5E6', weight: 18 },
-  { id: '3', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 17 },
-  { id: '4', label: '3000', type: 'flowers', flowersAmount: 3000, color: '#FFEFD5', weight: 12 },
-  { id: '5', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 20 },
-  { id: '6', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, color: '#FFDAB9', weight: 5 },
-  { id: '7', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 17 },
-  { id: '8', label: '1000', type: 'flowers', flowersAmount: 1000, color: '#FFF5E6', weight: 18 },
-  { id: '9', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 20 },
-  { id: '10', label: '5000', type: 'flowers', flowersAmount: 5000, color: '#FFF8DC', weight: 8 },
-  { id: '11', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 17 },
-  { id: '12', label: 'Royal', type: 'bee', beeType: 'royal', beeCount: 1, color: '#FFE4B5', weight: 3 },
-  { id: '13', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 20 },
-  { id: '14', label: '10000', type: 'flowers', flowersAmount: 10000, color: '#FFEFD5', weight: 2 },
-  { id: '15', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, color: '#FFDAB9', weight: 5 },
-  { id: '16', label: 'Reine', type: 'bee', beeType: 'queen', beeCount: 1, color: '#FFD700', weight: 1 },
+  { id: '1', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 25, rarity: 'common' },
+  { id: '2', label: '1000', type: 'flowers', flowersAmount: 1000, color: '#FFF5E6', weight: 22, rarity: 'common' },
+  { id: '3', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 20, rarity: 'uncommon' },
+  { id: '4', label: '3000', type: 'flowers', flowersAmount: 3000, color: '#FFEFD5', weight: 15, rarity: 'uncommon' },
+  { id: '5', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 25, rarity: 'common' },
+  { id: '6', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, color: '#FFDAB9', weight: 8, rarity: 'rare' },
+  { id: '7', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 20, rarity: 'uncommon' },
+  { id: '8', label: '1000', type: 'flowers', flowersAmount: 1000, color: '#FFF5E6', weight: 22, rarity: 'common' },
+  { id: '9', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 25, rarity: 'common' },
+  { id: '10', label: '5000', type: 'flowers', flowersAmount: 5000, color: '#FFF8DC', weight: 10, rarity: 'rare' },
+  { id: '11', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 20, rarity: 'uncommon' },
+  { id: '12', label: 'Royal', type: 'bee', beeType: 'royal', beeCount: 1, color: '#FFE4B5', weight: 5, rarity: 'epic' },
+  { id: '13', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 25, rarity: 'common' },
+  { id: '14', label: '10000', type: 'flowers', flowersAmount: 10000, color: '#FFEFD5', weight: 3, rarity: 'epic' },
+  { id: '15', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, color: '#FFDAB9', weight: 8, rarity: 'rare' },
+  { id: '16', label: 'Reine', type: 'bee', beeType: 'queen', beeCount: 1, color: '#FFD700', weight: 1, rarity: 'legendary' },
 ];
 
 export default function RouletteScreen() {
@@ -134,6 +135,26 @@ export default function RouletteScreen() {
     return '🌸';
   };
 
+  const getRarityIndicator = (rarity: Prize['rarity']) => {
+    switch (rarity) {
+      case 'legendary':
+        return '⭐⭐⭐';
+      case 'epic':
+        return '⭐⭐';
+      case 'rare':
+        return '⭐';
+      case 'uncommon':
+        return '•';
+      default:
+        return '';
+    }
+  };
+
+  const getProbabilityPercentage = (prize: Prize) => {
+    const totalWeight = PRIZES.reduce((sum, p) => sum + p.weight, 0);
+    return ((prize.weight / totalWeight) * 100).toFixed(1);
+  };
+
   const renderWheel = () => {
     const segmentAngle = 360 / PRIZES.length;
 
@@ -167,6 +188,8 @@ export default function RouletteScreen() {
                 const path = createWedgePath(startAngle, endAngle);
                 const imageUrl = prize.type === 'bee' && prize.beeType ? getImageUrlForBeeType(prize.beeType) : null;
 
+                const rarityIndicator = getRarityIndicator(prize.rarity);
+
                 return (
                   <G key={prize.id}>
                     <Path d={path} fill={prize.color} stroke="#8B4513" strokeWidth={2} />
@@ -191,6 +214,17 @@ export default function RouletteScreen() {
                     >
                       {prize.label}
                     </SvgText>
+                    {rarityIndicator && (
+                      <SvgText
+                        x={textX}
+                        y={textY + 12}
+                        fontSize="8"
+                        textAnchor="middle"
+                        fill="#D4AF37"
+                      >
+                        {rarityIndicator}
+                      </SvgText>
+                    )}
                   </G>
                 );
               })}
@@ -278,6 +312,27 @@ export default function RouletteScreen() {
           <Text style={styles.infoText}>
             {t.buyFlowersTicketInfo}
           </Text>
+        </View>
+
+        <View style={styles.probabilityCard}>
+          <Text style={styles.probabilityTitle}>{t.winChances || 'Chances de gagner'}</Text>
+          {PRIZES.filter((prize, index, self) => 
+            self.findIndex(p => p.label === prize.label && p.type === prize.type) === index
+          ).sort((a, b) => b.weight - a.weight).map((prize) => {
+            const rarityIndicator = getRarityIndicator(prize.rarity);
+            const probability = getProbabilityPercentage(prize);
+            
+            return (
+              <View key={`prob-${prize.id}`} style={styles.probabilityRow}>
+                <View style={styles.probabilityLeft}>
+                  <Text style={styles.probabilityEmoji}>{getEmojiForPrize(prize)}</Text>
+                  <Text style={styles.probabilityLabel}>{prize.label}</Text>
+                  {rarityIndicator ? <Text style={styles.probabilityRarity}>{rarityIndicator}</Text> : null}
+                </View>
+                <Text style={styles.probabilityValue}>{probability}%</Text>
+              </View>
+            );
+          })}
         </View>
       </View>
       </ScrollView>
@@ -452,6 +507,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
+  },
+  probabilityCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 20,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    width: Platform.OS === 'web' ? 400 : undefined,
+    alignSelf: 'center',
+  },
+  probabilityTitle: {
+    fontSize: 16,
+    fontWeight: 'bold' as const,
+    color: '#8B4513',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  probabilityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  probabilityLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  probabilityEmoji: {
+    fontSize: 18,
+  },
+  probabilityLabel: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600' as const,
+  },
+  probabilityRarity: {
+    fontSize: 10,
+    color: '#D4AF37',
+  },
+  probabilityValue: {
+    fontSize: 14,
+    fontWeight: 'bold' as const,
+    color: '#FF8C00',
   },
   wheelImage: {
     position: 'absolute',

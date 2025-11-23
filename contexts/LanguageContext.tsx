@@ -212,6 +212,7 @@ export type Translations = {
   checkLogsForCode: string;
   passwordResetSuccess: string;
   canNowLogin: string;
+  winChances: string;
 };
 
 const translations: Record<Language, Translations> = {
@@ -423,6 +424,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'Vérifiez vos logs pour le code de test:',
     passwordResetSuccess: 'Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.',
     canNowLogin: 'Vous pouvez maintenant vous connecter',
+    winChances: 'Chances de gagner',
   },
   en: {
     home: 'Home',
@@ -632,6 +634,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'Check your logs for the test code:',
     passwordResetSuccess: 'Your password has been reset successfully. You can now log in.',
     canNowLogin: 'You can now log in',
+    winChances: 'Win Chances',
   },
   es: {
     home: 'Inicio',
@@ -841,6 +844,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'Revisa tus logs para el código de prueba:',
     passwordResetSuccess: 'Tu contraseña ha sido restablecida con éxito. Ahora puedes iniciar sesión.',
     canNowLogin: 'Ahora puedes iniciar sesión',
+    winChances: 'Probabilidades de ganar',
   },
   de: {
     home: 'Startseite',
@@ -1050,6 +1054,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'Überprüfen Sie Ihre Logs für den Testcode:',
     passwordResetSuccess: 'Ihr Passwort wurde erfolgreich zurückgesetzt. Sie können sich jetzt anmelden.',
     canNowLogin: 'Sie können sich jetzt anmelden',
+    winChances: 'Gewinnchancen',
   },
   it: {
     home: 'Home',
@@ -1259,6 +1264,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'Controlla i tuoi log per il codice di test:',
     passwordResetSuccess: 'La tua password è stata reimpostata con successo. Ora puoi accedere.',
     canNowLogin: 'Ora puoi accedere',
+    winChances: 'Probabilità di vincita',
   },
   pt: {
     home: 'Início',
@@ -1468,6 +1474,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'Verifique seus logs para o código de teste:',
     passwordResetSuccess: 'Sua senha foi redefinida com sucesso. Você pode fazer login agora.',
     canNowLogin: 'Você pode fazer login agora',
+    winChances: 'Chances de ganhar',
   },
   ru: {
     home: 'Главная',
@@ -1677,6 +1684,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'Проверьте ваши логи для тестового кода:',
     passwordResetSuccess: 'Ваш пароль был успешно сброшен. Теперь вы можете войти.',
     canNowLogin: 'Теперь вы можете войти',
+    winChances: 'Шансы на выигрыш',
   },
   ar: {
     home: 'الرئيسية',
@@ -1886,6 +1894,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'تحقق من السجلات الخاصة بك للحصول على رمز الاختبار:',
     passwordResetSuccess: 'تمت إعادة تعيين كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.',
     canNowLogin: 'يمكنك الآن تسجيل الدخول',
+    winChances: 'فرص الفوز',
   },
   id: {
     home: 'Beranda',
@@ -2095,6 +2104,7 @@ const translations: Record<Language, Translations> = {
     checkLogsForCode: 'Periksa log Anda untuk kode tes:',
     passwordResetSuccess: 'Kata sandi Anda telah berhasil diatur ulang. Anda sekarang dapat masuk.',
     canNowLogin: 'Anda sekarang dapat masuk',
+    winChances: 'Peluang Menang',
   },
 };
 
