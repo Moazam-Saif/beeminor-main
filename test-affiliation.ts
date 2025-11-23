@@ -21,14 +21,7 @@ type Referral = {
   hasFirstPurchase: boolean;
 };
 
-type Transaction = {
-  id: string;
-  userId: string;
-  type: 'withdrawal_diamond' | 'withdrawal_bvr' | 'deposit_crypto';
-  amount: number;
-  usdAmount?: number;
-  flowersAmount?: number;
-};
+
 
 // ===== SIMULATION =====
 class AffiliationSimulator {
