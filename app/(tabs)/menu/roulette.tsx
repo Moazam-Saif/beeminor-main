@@ -1,12 +1,18 @@
 import { useGame, BEE_TYPES } from '@/contexts/GameContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Image, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, G, Text as SvgText } from 'react-native-svg';
 
-const { width } = Dimensions.get('window');
-const WHEEL_SIZE = width * 0.85;
+const { width, height } = Dimensions.get('window');
+const getWheelSize = () => {
+  if (Platform.OS === 'web') {
+    return Math.min(width * 0.6, height * 0.5, 400);
+  }
+  return width * 0.85;
+};
+const WHEEL_SIZE = getWheelSize();
 const RADIUS = WHEEL_SIZE / 2;
 
 type Prize = {
@@ -219,6 +225,7 @@ export default function RouletteScreen() {
         <Text style={styles.headerTitle}>{t.roulette}</Text>
       </View>
 
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
         <View style={styles.ticketsCard}>
           <Text style={styles.ticketsLabel}>{t.ticketsAvailable}</Text>
@@ -257,6 +264,7 @@ export default function RouletteScreen() {
           </Text>
         </View>
       </View>
+      </ScrollView>
     </View>
   );
 }
@@ -279,10 +287,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold' as const,
     color: '#fff',
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
   content: {
-    flex: 1,
     alignItems: 'center',
     paddingVertical: 20,
+    width: '100%',
   },
   ticketsCard: {
     backgroundColor: '#fff',
