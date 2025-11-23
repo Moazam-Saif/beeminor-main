@@ -23,25 +23,26 @@ type Prize = {
   beeCount?: number;
   flowersAmount?: number;
   color: string;
+  weight: number;
 };
 
 const PRIZES: Prize[] = [
-  { id: '1', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4' },
-  { id: '2', label: '1000', type: 'flowers', flowersAmount: 1000, color: '#FFF5E6' },
-  { id: '3', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0' },
-  { id: '4', label: '3000', type: 'flowers', flowersAmount: 3000, color: '#FFEFD5' },
-  { id: '5', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4' },
-  { id: '6', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, color: '#FFDAB9' },
-  { id: '7', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0' },
-  { id: '8', label: '1000', type: 'flowers', flowersAmount: 1000, color: '#FFF5E6' },
-  { id: '9', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4' },
-  { id: '10', label: '5000', type: 'flowers', flowersAmount: 5000, color: '#FFF8DC' },
-  { id: '11', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0' },
-  { id: '12', label: 'Royal', type: 'bee', beeType: 'royal', beeCount: 1, color: '#FFE4B5' },
-  { id: '13', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4' },
-  { id: '14', label: '10000', type: 'flowers', flowersAmount: 10000, color: '#FFEFD5' },
-  { id: '15', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, color: '#FFDAB9' },
-  { id: '16', label: 'Reine', type: 'bee', beeType: 'queen', beeCount: 1, color: '#FFD700' },
+  { id: '1', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 20 },
+  { id: '2', label: '1000', type: 'flowers', flowersAmount: 1000, color: '#FFF5E6', weight: 18 },
+  { id: '3', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 17 },
+  { id: '4', label: '3000', type: 'flowers', flowersAmount: 3000, color: '#FFEFD5', weight: 12 },
+  { id: '5', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 20 },
+  { id: '6', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, color: '#FFDAB9', weight: 5 },
+  { id: '7', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 17 },
+  { id: '8', label: '1000', type: 'flowers', flowersAmount: 1000, color: '#FFF5E6', weight: 18 },
+  { id: '9', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 20 },
+  { id: '10', label: '5000', type: 'flowers', flowersAmount: 5000, color: '#FFF8DC', weight: 8 },
+  { id: '11', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, color: '#FFD9A0', weight: 17 },
+  { id: '12', label: 'Royal', type: 'bee', beeType: 'royal', beeCount: 1, color: '#FFE4B5', weight: 3 },
+  { id: '13', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, color: '#FFE5B4', weight: 20 },
+  { id: '14', label: '10000', type: 'flowers', flowersAmount: 10000, color: '#FFEFD5', weight: 2 },
+  { id: '15', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, color: '#FFDAB9', weight: 5 },
+  { id: '16', label: 'Reine', type: 'bee', beeType: 'queen', beeCount: 1, color: '#FFD700', weight: 1 },
 ];
 
 export default function RouletteScreen() {
@@ -53,6 +54,19 @@ export default function RouletteScreen() {
   const rotateValue = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
+  const getWeightedRandomPrize = useCallback(() => {
+    const totalWeight = PRIZES.reduce((sum, prize) => sum + prize.weight, 0);
+    let random = Math.random() * totalWeight;
+
+    for (let i = 0; i < PRIZES.length; i++) {
+      random -= PRIZES[i].weight;
+      if (random <= 0) {
+        return i;
+      }
+    }
+    return 0;
+  }, []);
+
   const spinWheel = useCallback(() => {
     if (isSpinning || tickets <= 0) return;
 
@@ -62,7 +76,7 @@ export default function RouletteScreen() {
     setIsSpinning(true);
     setWonPrize(null);
 
-    const randomPrizeIndex = Math.floor(Math.random() * PRIZES.length);
+    const randomPrizeIndex = getWeightedRandomPrize();
     const prize = PRIZES[randomPrizeIndex];
 
     const degreesPerSegment = 360 / PRIZES.length;
@@ -84,7 +98,9 @@ export default function RouletteScreen() {
         addFlowers(prize.flowersAmount);
       }
     });
-  }, [isSpinning, tickets, gameContext, rotateValue, addBees, addFlowers]);
+
+    console.log('Prize won:', prize.label, 'Weight:', prize.weight, 'Index:', randomPrizeIndex);
+  }, [isSpinning, tickets, gameContext, rotateValue, addBees, addFlowers, getWeightedRandomPrize]);
 
   const rotation = rotateValue.interpolate({
     inputRange: [0, 360],
