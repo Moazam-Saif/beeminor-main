@@ -150,11 +150,6 @@ export default function RouletteScreen() {
     }
   };
 
-  const getProbabilityPercentage = (prize: Prize) => {
-    const totalWeight = PRIZES.reduce((sum, p) => sum + p.weight, 0);
-    return ((prize.weight / totalWeight) * 100).toFixed(1);
-  };
-
   const renderWheel = () => {
     const segmentAngle = 360 / PRIZES.length;
 
@@ -312,27 +307,6 @@ export default function RouletteScreen() {
           <Text style={styles.infoText}>
             {t.buyFlowersTicketInfo}
           </Text>
-        </View>
-
-        <View style={styles.probabilityCard}>
-          <Text style={styles.probabilityTitle}>{t.winChances || 'Chances de gagner'}</Text>
-          {PRIZES.filter((prize, index, self) => 
-            self.findIndex(p => p.label === prize.label && p.type === prize.type) === index
-          ).sort((a, b) => b.weight - a.weight).map((prize) => {
-            const rarityIndicator = getRarityIndicator(prize.rarity);
-            const probability = getProbabilityPercentage(prize);
-            
-            return (
-              <View key={`prob-${prize.id}`} style={styles.probabilityRow}>
-                <View style={styles.probabilityLeft}>
-                  <Text style={styles.probabilityEmoji}>{getEmojiForPrize(prize)}</Text>
-                  <Text style={styles.probabilityLabel}>{prize.label}</Text>
-                  {rarityIndicator ? <Text style={styles.probabilityRarity}>{rarityIndicator}</Text> : null}
-                </View>
-                <Text style={styles.probabilityValue}>{probability}%</Text>
-              </View>
-            );
-          })}
         </View>
       </View>
       </ScrollView>
@@ -507,57 +481,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-  },
-  probabilityCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 20,
-    marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    width: Platform.OS === 'web' ? 400 : undefined,
-    alignSelf: 'center',
-  },
-  probabilityTitle: {
-    fontSize: 16,
-    fontWeight: 'bold' as const,
-    color: '#8B4513',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  probabilityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  probabilityLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  probabilityEmoji: {
-    fontSize: 18,
-  },
-  probabilityLabel: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600' as const,
-  },
-  probabilityRarity: {
-    fontSize: 10,
-    color: '#D4AF37',
-  },
-  probabilityValue: {
-    fontSize: 14,
-    fontWeight: 'bold' as const,
-    color: '#FF8C00',
   },
   wheelImage: {
     position: 'absolute',
