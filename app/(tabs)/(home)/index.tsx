@@ -1,11 +1,13 @@
 import { useGame } from '@/contexts/GameContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Modal, Alert, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 
 const { width, height } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const MAX_WEB_WIDTH = 600;
 
 type AnimatedBee = {
   id: number;
@@ -73,6 +75,7 @@ export default function HomeScreen() {
         colors={['#2d5016', '#3d6b1f', '#4a7c26']}
         style={styles.forestGradient}
       >
+        <View style={styles.webContainer}>
         <View style={styles.forestBackground}>
           <Text style={[styles.tree, { top: 100, left: 20 }]}>🌲</Text>
           <Text style={[styles.tree, { top: 120, left: width * 0.7 }]}>🌲</Text>
@@ -204,6 +207,7 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </Modal>
+        </View>
       </LinearGradient>
     </View>
   );
@@ -216,6 +220,12 @@ const styles = StyleSheet.create({
   },
   forestGradient: {
     flex: 1,
+  },
+  webContainer: {
+    flex: 1,
+    maxWidth: isWeb ? MAX_WEB_WIDTH : undefined,
+    width: '100%',
+    alignSelf: 'center',
   },
   bottomGradient: {
     position: 'absolute',
@@ -391,7 +401,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 24,
-    width: '90%',
+    width: isWeb ? Math.min(width * 0.9, 400) : '90%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

@@ -5,6 +5,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Pla
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+const isWeb = Platform.OS === 'web';
+const MAX_WEB_WIDTH = 600;
+
 export default function ShopScreen() {
   const { honey, flowers, diamonds, bees, buyBee, buyFlowers, hasPendingFunds } = useGame();
   const { t } = useLanguage();
@@ -70,7 +73,7 @@ export default function ShopScreen() {
     <View style={styles.background}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80, maxWidth: isWeb ? MAX_WEB_WIDTH : undefined, width: '100%', alignSelf: 'center' }]}
       >
         <View style={styles.resourcesCard}>
           <Text style={styles.resourcesTitle}>{t.myResources}</Text>
@@ -197,7 +200,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: isWeb ? 24 : 20,
   },
   resourcesCard: {
     backgroundColor: '#fff',

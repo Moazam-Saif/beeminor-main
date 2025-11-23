@@ -1,7 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CircleDollarSign, Ticket, ArrowLeftRight, Wallet } from 'lucide-react-native';
+
+const isWeb = Platform.OS === 'web';
+const MAX_WEB_WIDTH = 600;
 
 export default function MenuScreen() {
   const router = useRouter();
@@ -9,7 +12,7 @@ export default function MenuScreen() {
 
   return (
     <View style={styles.background}>
-      <View style={styles.content}>
+      <View style={[styles.content, isWeb && { maxWidth: MAX_WEB_WIDTH, width: '100%', alignSelf: 'center' }]}>
         <TouchableOpacity
           style={styles.menuCard}
           onPress={() => router.push('/(tabs)/menu/roulette')}
@@ -82,8 +85,8 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 30,
+    paddingHorizontal: isWeb ? 24 : 20,
+    paddingTop: isWeb ? 40 : 30,
     gap: 20,
   },
   menuCard: {

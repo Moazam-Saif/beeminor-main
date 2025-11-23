@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Platform, Dimensions } from 'react-native';
 import { useGame } from '@/contexts/GameContext';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { Menu, X, Crown } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const MAX_WEB_WIDTH = 600;
 
 export default function TopBar() {
   const { flowers, diamonds, bvrCoins } = useGame();
@@ -170,14 +174,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: isWeb ? 16 : 12,
+    paddingVertical: isWeb ? 12 : 8,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    maxWidth: isWeb ? MAX_WEB_WIDTH : undefined,
+    width: '100%',
+    alignSelf: 'center',
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: isWeb ? 12 : 8,
+    flex: 1,
+    flexWrap: isWeb ? 'nowrap' : 'wrap',
   },
   rightSection: {
     flexDirection: 'row',
@@ -192,31 +201,32 @@ const styles = StyleSheet.create({
     borderColor: '#FFD700',
   },
   menuButton: {
-    padding: 4,
+    padding: isWeb ? 8 : 4,
   },
   languageButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: isWeb ? 12 : 8,
+    paddingVertical: isWeb ? 8 : 4,
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   languageFlag: {
-    fontSize: 24,
+    fontSize: isWeb ? 28 : 24,
   },
   resourceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: isWeb ? 10 : 6,
+    paddingVertical: isWeb ? 6 : 3,
     borderRadius: 12,
+    minWidth: isWeb ? 70 : undefined,
   },
   resourceEmoji: {
-    fontSize: 14,
-    marginRight: 2,
+    fontSize: isWeb ? 18 : 14,
+    marginRight: isWeb ? 4 : 2,
   },
   resourceText: {
-    fontSize: 11,
+    fontSize: isWeb ? 14 : 11,
     fontWeight: 'bold' as const,
     color: '#8B4513',
   },
@@ -231,7 +241,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 20,
-    width: '90%',
+    width: isWeb ? Math.min(SCREEN_WIDTH * 0.9, 400) : '90%',
     maxHeight: '80%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -243,7 +253,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 20,
-    width: '90%',
+    width: isWeb ? Math.min(SCREEN_WIDTH * 0.9, 400) : '90%',
     maxHeight: '60%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

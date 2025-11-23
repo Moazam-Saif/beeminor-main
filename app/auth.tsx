@@ -16,6 +16,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { router } from 'expo-router';
 
+const isWeb = Platform.OS === 'web';
+const MAX_WEB_WIDTH = 500;
+
 type ScreenMode = 'login' | 'register' | 'forgot' | 'reset';
 
 export default function AuthScreen() {
@@ -220,7 +223,7 @@ export default function AuthScreen() {
         <ScrollView 
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
+            { paddingTop: isWeb ? 40 : insets.top + 20, paddingBottom: isWeb ? 40 : insets.bottom + 20, maxWidth: isWeb ? MAX_WEB_WIDTH : undefined, width: '100%', alignSelf: 'center' },
           ]}
           keyboardShouldPersistTaps="handled"
         >
@@ -434,7 +437,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: isWeb ? 24 : 20,
   },
   content: {
     flex: 1,
@@ -488,6 +491,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    outlineStyle: 'none' as any,
   },
   button: {
     backgroundColor: '#8B4513',

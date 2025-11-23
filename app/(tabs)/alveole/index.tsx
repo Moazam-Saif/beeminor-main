@@ -1,9 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGame, ALVEOLE_LEVELS } from '@/contexts/GameContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+
+const isWeb = Platform.OS === 'web';
+const MAX_WEB_WIDTH = 600;
 
 export default function AlveoleScreen() {
   const insets = useSafeAreaInsets();
@@ -63,7 +66,7 @@ export default function AlveoleScreen() {
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20, maxWidth: isWeb ? MAX_WEB_WIDTH : undefined, width: '100%', alignSelf: 'center' }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.sectionHeader}>
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: isWeb ? 24 : 20,
   },
 
   sectionHeader: {

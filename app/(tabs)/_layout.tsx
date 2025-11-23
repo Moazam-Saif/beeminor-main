@@ -1,10 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Home, ShoppingBag, Hexagon, ListTodo, Shield } from 'lucide-react-native';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TopBar from '@/components/TopBar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+
+const isWeb = Platform.OS === 'web';
 
 const ADMIN_EMAIL = 'martinremy100@gmail.com';
 
@@ -17,7 +19,7 @@ export default function TabsLayout() {
   
   return (
     <>
-      <View style={{ paddingTop: insets.top, backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+      <View style={{ paddingTop: isWeb ? 0 : insets.top, backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
         <TopBar />
       </View>
       <Tabs
@@ -29,12 +31,12 @@ export default function TabsLayout() {
           backgroundColor: '#FFF8DC',
           borderTopColor: '#FFD700',
           borderTopWidth: 2,
-          height: 90,
-          paddingBottom: 20,
-          paddingTop: 5,
+          height: isWeb ? 70 : 90,
+          paddingBottom: isWeb ? 8 : 20,
+          paddingTop: isWeb ? 8 : 5,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: isWeb ? 12 : 10,
           fontWeight: '600' as const,
           marginTop: 2,
         },

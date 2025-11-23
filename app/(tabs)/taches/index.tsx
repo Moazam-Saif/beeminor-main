@@ -1,10 +1,13 @@
 import { useGame } from '@/contexts/GameContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Clipboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Clipboard, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Users, Gift, Ticket, Copy, DollarSign, TrendingUp, Award } from 'lucide-react-native';
+
+const isWeb = Platform.OS === 'web';
+const MAX_WEB_WIDTH = 600;
 
 type Mission = {
   id: number;
@@ -95,7 +98,7 @@ export default function TachesScreen() {
       <LinearGradient colors={['#FFE5B4', '#FFF8DC', '#FFFACD']} style={styles.gradient}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20, maxWidth: isWeb ? MAX_WEB_WIDTH : undefined, width: '100%', alignSelf: 'center' }]}
         >
           <View style={styles.header}>
             <View style={styles.statsRow}>
@@ -288,7 +291,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: isWeb ? 20 : 16,
   },
   header: {
     marginBottom: 24,
