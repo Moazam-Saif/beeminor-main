@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
+import React, { useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GameProvider } from '@/contexts/GameContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
@@ -17,6 +17,7 @@ function RootLayoutNav() {
   const { isAuthenticated, isLoaded } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [navigationReady, setNavigationReady] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -28,9 +29,19 @@ function RootLayoutNav() {
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/(tabs)/(home)');
     }
+    
+    setNavigationReady(true);
   }, [isAuthenticated, isLoaded, segments, router]);
 
-  if (!isLoaded) {
+  useEffect(() => {
+    if (navigationReady && isLoaded) {
+      setTimeout(() => {
+        SplashScreen.hideAsync().catch(() => {});
+      }, 100);
+    }
+  }, [navigationReady, isLoaded]);
+
+  if (!isLoaded || !navigationReady) {
     return null;
   }
 
@@ -43,9 +54,6 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
