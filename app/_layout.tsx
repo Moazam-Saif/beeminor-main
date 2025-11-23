@@ -9,7 +9,7 @@ import { AdminProvider } from '@/contexts/AdminContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CryptoProvider } from '@/contexts/CryptoContext';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient();
 
