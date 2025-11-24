@@ -262,6 +262,7 @@ export default function RetraitScreen() {
             onChangeText={setWalletAddress}
             autoCapitalize="none"
             autoCorrect={false}
+            keyboardType="default"
           />
         </View>
 
@@ -274,7 +275,7 @@ export default function RetraitScreen() {
               placeholderTextColor="#999"
               value={withdrawAmount}
               onChangeText={setWithdrawAmount}
-              keyboardType="numeric"
+              keyboardType="number-pad"
             />
             <Text style={styles.currencyLabel}>{withdrawType === 'diamonds' ? '💎' : '🪙'}</Text>
           </View>

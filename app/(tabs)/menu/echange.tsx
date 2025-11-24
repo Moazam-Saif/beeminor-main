@@ -172,9 +172,7 @@ export default function EchangeScreen() {
                     setExchangeAmount(cleaned);
                   }
                 }}
-                keyboardType="decimal-pad"
-                autoFocus={false}
-                editable={true}
+                keyboardType="number-pad"
               />
               <Text style={styles.currencyLabel}>
                 {selectedExchange === 'DIAMONDS_TO_FLOWERS' ? '💎' : '🐝'}
