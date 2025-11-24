@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Platform, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '@/contexts/GameContext';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +19,7 @@ export default function TopBar() {
   const [showLanguages, setShowLanguages] = useState<boolean>(false);
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -62,7 +64,7 @@ export default function TopBar() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Platform.OS !== 'web' ? insets.top : 0 }]}>
       <View style={styles.leftSection}>
         <TouchableOpacity
           style={styles.menuButton}
