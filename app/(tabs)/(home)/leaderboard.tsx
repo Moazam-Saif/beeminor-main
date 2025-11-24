@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGame } from '@/contexts/GameContext';
@@ -170,16 +170,9 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      height: '100vh',
-      overflow: 'hidden',
-    }),
   },
   gradient: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      height: '100%',
-    }),
   },
   header: {
     alignItems: 'center',
@@ -201,10 +194,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      maxHeight: 'calc(100vh - 200px)',
-      overflowY: 'auto' as any,
-    }),
   },
   scrollContent: {
     padding: 16,
