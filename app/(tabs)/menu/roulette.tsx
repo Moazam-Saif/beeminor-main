@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, G, Text as SvgText } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const MAX_WEB_WIDTH = 600;
 const getWheelSize = () => {
-  if (Platform.OS === 'web') {
-    return Math.min(width * 0.6, height * 0.5, 400);
+  if (isWeb) {
+    return Math.min(MAX_WEB_WIDTH * 0.7, height * 0.4, 350);
   }
   return width * 0.85;
 };
@@ -266,11 +268,11 @@ export default function RouletteScreen() {
 
   return (
     <View style={styles.background}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.header, { paddingTop: isWeb ? 10 : insets.top + 10 }]}>
         <Text style={styles.headerTitle}>{t.roulette}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { maxWidth: isWeb ? MAX_WEB_WIDTH : undefined, width: '100%', alignSelf: 'center' }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
         <View style={styles.ticketsCard}>
           <Text style={styles.ticketsLabel}>{t.ticketsAvailable}</Text>
@@ -324,11 +326,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: isWeb ? 12 : 16,
     backgroundColor: '#FF8C00',
+    maxWidth: isWeb ? MAX_WEB_WIDTH : undefined,
+    width: '100%',
+    alignSelf: 'center',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: isWeb ? 24 : 28,
     fontWeight: 'bold' as const,
     color: '#fff',
   },
@@ -338,14 +343,15 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: isWeb ? 15 : 20,
     width: '100%',
   },
   ticketsCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+    padding: isWeb ? 16 : 20,
+    marginBottom: isWeb ? 16 : 20,
+    marginHorizontal: isWeb ? 20 : 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -377,7 +383,7 @@ const styles = StyleSheet.create({
     height: WHEEL_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 20,
+    marginVertical: isWeb ? 15 : 20,
     backgroundColor: '#fff',
     borderRadius: WHEEL_SIZE / 2,
     shadowColor: '#000',
@@ -413,9 +419,10 @@ const styles = StyleSheet.create({
   spinButton: {
     backgroundColor: '#FF8C00',
     paddingHorizontal: 40,
-    paddingVertical: 16,
+    paddingVertical: isWeb ? 14 : 16,
     borderRadius: 25,
-    marginTop: 20,
+    marginTop: isWeb ? 15 : 20,
+    marginHorizontal: isWeb ? 20 : 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -434,8 +441,9 @@ const styles = StyleSheet.create({
   prizeCard: {
     backgroundColor: '#FFD700',
     borderRadius: 20,
-    padding: 20,
-    marginTop: 20,
+    padding: isWeb ? 16 : 20,
+    marginTop: isWeb ? 15 : 20,
+    marginHorizontal: isWeb ? 20 : 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -462,8 +470,8 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
-    marginTop: 20,
+    padding: isWeb ? 14 : 16,
+    marginTop: isWeb ? 15 : 20,
     marginHorizontal: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

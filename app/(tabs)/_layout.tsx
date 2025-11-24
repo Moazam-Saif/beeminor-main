@@ -13,7 +13,12 @@ export default function TabsLayout() {
   
   return (
     <>
-      <View style={{ paddingTop: isWeb ? 0 : insets.top, backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+      <View style={{ 
+        paddingTop: isWeb ? 0 : insets.top, 
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)'
+      }}>
         <TopBar />
       </View>
       <Tabs

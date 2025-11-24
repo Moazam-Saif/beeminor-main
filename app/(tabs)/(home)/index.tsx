@@ -75,7 +75,7 @@ export default function HomeScreen() {
         colors={['#2d5016', '#3d6b1f', '#4a7c26']}
         style={styles.forestGradient}
       >
-        <View style={styles.webContainer}>
+        <View style={[styles.webContainer, { backgroundColor: 'transparent' }]}>
         <View style={styles.forestBackground}>
           <Text style={[styles.tree, { top: 100, left: 20 }]}>🌲</Text>
           <Text style={[styles.tree, { top: 120, left: width * 0.7 }]}>🌲</Text>
@@ -84,7 +84,7 @@ export default function HomeScreen() {
           <Text style={[styles.tree, { top: 140, right: width * 0.25 }]}>🌳</Text>
         </View>
 
-        <View style={styles.sceneContainer}>
+        <View style={[styles.sceneContainer, { paddingTop: isWeb ? 20 : 40 }]}>
           <TouchableOpacity
             style={styles.infoButton}
             onPress={() => setShowStats(true)}
@@ -124,7 +124,7 @@ export default function HomeScreen() {
 
         <LinearGradient
           colors={['rgba(0,0,0,0)', '#fff9e6', '#fffaed']}
-          style={styles.bottomGradient}
+          style={[styles.bottomGradient, { maxWidth: isWeb ? MAX_WEB_WIDTH : undefined, width: '100%', alignSelf: 'center' }]}
         >
           <View style={styles.honeyDisplayContainer}>
             <View style={styles.honeyDisplay}>
@@ -226,14 +226,15 @@ const styles = StyleSheet.create({
     maxWidth: isWeb ? MAX_WEB_WIDTH : undefined,
     width: '100%',
     alignSelf: 'center',
+    overflow: 'hidden',
   },
   bottomGradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 160,
-    paddingBottom: 20,
+    height: isWeb ? 140 : 160,
+    paddingBottom: isWeb ? 15 : 20,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
@@ -276,30 +277,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
-    gap: 12,
+    marginBottom: isWeb ? 8 : 10,
+    gap: isWeb ? 10 : 12,
   },
   honeyDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 215, 0, 0.95)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: isWeb ? 16 : 20,
+    paddingVertical: isWeb ? 8 : 10,
+    borderRadius: isWeb ? 16 : 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    borderWidth: 3,
+    borderWidth: isWeb ? 2 : 3,
     borderColor: '#FFD700',
   },
   honeyEmoji: {
-    fontSize: 32,
-    marginRight: 8,
+    fontSize: isWeb ? 28 : 32,
+    marginRight: isWeb ? 6 : 8,
   },
   honeyAmount: {
-    fontSize: 24,
+    fontSize: isWeb ? 20 : 24,
     fontWeight: 'bold' as const,
     color: '#8B4513',
   },
@@ -307,7 +308,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 40,
   },
   beesContainer: {
     position: 'absolute',
@@ -373,11 +373,11 @@ const styles = StyleSheet.create({
   },
   infoButton: {
     position: 'absolute',
-    top: 40,
-    left: 20,
+    top: isWeb ? 20 : 40,
+    left: isWeb ? 15 : 20,
     backgroundColor: 'rgba(255, 215, 0, 0.9)',
-    borderRadius: 25,
-    padding: 10,
+    borderRadius: isWeb ? 20 : 25,
+    padding: isWeb ? 8 : 10,
     borderWidth: 2,
     borderColor: '#FFD700',
     shadowColor: '#000',
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   infoButtonText: {
-    fontSize: 28,
+    fontSize: isWeb ? 24 : 28,
   },
   modalOverlay: {
     flex: 1,
@@ -453,19 +453,19 @@ const styles = StyleSheet.create({
   },
   sellButton: {
     backgroundColor: '#FF8C00',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: isWeb ? 16 : 20,
+    paddingVertical: isWeb ? 8 : 10,
+    borderRadius: isWeb ? 16 : 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    borderWidth: 3,
+    borderWidth: isWeb ? 2 : 3,
     borderColor: '#FFA500',
   },
   sellButtonText: {
-    fontSize: 16,
+    fontSize: isWeb ? 14 : 16,
     fontWeight: 'bold' as const,
     color: '#FFF',
   },
