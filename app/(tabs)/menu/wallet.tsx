@@ -189,7 +189,7 @@ export default function WalletScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.push('/(tabs)/menu')}
         >
           <ArrowLeft color="#fff" size={24} />
         </TouchableOpacity>
