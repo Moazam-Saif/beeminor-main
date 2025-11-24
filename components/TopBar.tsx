@@ -156,18 +156,20 @@ export default function TopBar() {
                 <X size={24} color="#8B4513" />
               </TouchableOpacity>
             </View>
-            {menuItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.menuOption}
-                onPress={() => {
-                  setShowMenu(false);
-                  router.push(item.path as any);
-                }}
-              >
-                <Text style={styles.menuOptionText}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {menuItems.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.menuOption}
+                  onPress={() => {
+                    setShowMenu(false);
+                    router.push(item.path as any);
+                  }}
+                >
+                  <Text style={styles.menuOptionText}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -260,7 +262,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     width: isWeb ? Math.min(SCREEN_WIDTH * 0.9, 400) : '90%',
-    maxHeight: '60%',
+    maxHeight: isWeb ? '70%' : '60%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -305,13 +307,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold' as const,
   },
   menuOption: {
-    padding: 16,
+    padding: isWeb ? 18 : 16,
     borderRadius: 12,
     backgroundColor: '#FFF8DC',
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 69, 19, 0.1)',
   },
   menuOptionText: {
-    fontSize: 18,
+    fontSize: isWeb ? 16 : 18,
     fontWeight: '600' as const,
     color: '#8B4513',
     textAlign: 'center',
