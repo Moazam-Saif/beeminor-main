@@ -80,6 +80,12 @@ export default function FAQScreen() {
               Vous avez d&apos;autres questions ? Contactez-nous via l&apos;onglet Aide.
             </Text>
           </View>
+
+          <View style={styles.developerInfo}>
+            <Text style={styles.developerText}>
+              Application développée par le Fondateur Rémy MARTIN et son équipe au surnom Sricos
+            </Text>
+          </View>
         </ScrollView>
       </LinearGradient>
     </View>
@@ -148,5 +154,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  developerInfo: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  developerText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    lineHeight: 20,
+    fontWeight: '500' as const,
   },
 });
