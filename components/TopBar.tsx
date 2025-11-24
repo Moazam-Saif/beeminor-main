@@ -64,7 +64,7 @@ export default function TopBar() {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS !== 'web' ? insets.top : 0 }]}>
+    <View style={styles.container}>
       <View style={styles.leftSection}>
         <TouchableOpacity
           style={styles.menuButton}
@@ -198,6 +198,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     width: '100%',
+    paddingTop: Platform.OS !== 'web' ? 40 : 10,
     ...(isWeb && {
       maxWidth: '100%',
       alignSelf: 'center',
