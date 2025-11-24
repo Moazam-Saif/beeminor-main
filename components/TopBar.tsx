@@ -58,7 +58,7 @@ export default function TopBar() {
     { label: t.help, path: '/(tabs)/(home)/aide' },
     { label: t.account, path: '/(tabs)/(home)/compte' },
     { label: t.history, path: '/(tabs)/(home)/historique' },
-    ...(isAdmin ? [{ label: 'Admin', path: '/admin/index' }] : []),
+    ...(isAdmin ? [{ label: 'Admin', path: '/(tabs)/admin' }] : []),
   ];
 
   return (
