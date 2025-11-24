@@ -912,7 +912,7 @@ function MessagesTab({ admin }: { admin: ReturnType<typeof useAdmin> }) {
       }
     } else {
       if (Platform.OS === 'web') {
-        alert(result.error || 'Erreur lors de la mise à jour de l&apos;email');
+        alert(result.error || 'Erreur lors de la mise à jour de l\'email');
       } else {
         Alert.alert('Erreur', result.error || 'Erreur lors de la mise à jour de l\'email');
       }
