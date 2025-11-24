@@ -343,7 +343,7 @@ export default function AuthScreen() {
                       placeholder={t.enterResetCode}
                       value={resetCode}
                       onChangeText={setResetCode}
-                      keyboardType="number-pad"
+                      keyboardType="default"
                       autoCapitalize="none"
                       autoCorrect={false}
                       placeholderTextColor="#999"
