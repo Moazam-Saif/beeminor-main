@@ -9,7 +9,6 @@ import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
-const MAX_WEB_WIDTH = 600;
 const ADMIN_EMAIL = 'martinremy100@gmail.com';
 
 export default function TopBar() {
