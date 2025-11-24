@@ -196,6 +196,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     width: '100%',
+    ...(isWeb && {
+      maxWidth: '100%',
+      alignSelf: 'center',
+    }),
   },
   leftSection: {
     flexDirection: 'row',

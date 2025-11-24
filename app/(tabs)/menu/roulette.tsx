@@ -10,7 +10,7 @@ const isWeb = Platform.OS === 'web';
 const MAX_WEB_WIDTH = 600;
 const getWheelSize = () => {
   if (isWeb) {
-    return Math.min(MAX_WEB_WIDTH * 0.7, height * 0.4, 350);
+    return Math.min(MAX_WEB_WIDTH * 0.6, height * 0.35, 300);
   }
   return width * 0.85;
 };
@@ -236,7 +236,7 @@ export default function RouletteScreen() {
             const middleRad = (middleAngle * Math.PI) / 180;
 
             const imageRadius = RADIUS * 0.45;
-            const imageSize = isWeb ? 28 : 40;
+            const imageSize = isWeb ? 22 : 40;
             const imageOffset = imageSize / 2;
             const imageX = RADIUS + imageRadius * Math.cos(middleRad) - imageOffset;
             const imageY = RADIUS + imageRadius * Math.sin(middleRad) - imageOffset;
@@ -500,8 +500,8 @@ const styles = StyleSheet.create({
   centerButton: {
     position: 'absolute',
     backgroundColor: '#FF8C00',
-    paddingHorizontal: isWeb ? 20 : 32,
-    paddingVertical: isWeb ? 10 : 16,
+    paddingHorizontal: isWeb ? 16 : 32,
+    paddingVertical: isWeb ? 8 : 16,
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   centerButtonLabel: {
-    fontSize: isWeb ? 14 : 18,
+    fontSize: isWeb ? 12 : 18,
     fontWeight: 'bold' as const,
     color: '#fff',
   },

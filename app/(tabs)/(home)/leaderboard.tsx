@@ -202,7 +202,8 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     ...(Platform.OS === 'web' && {
-      maxHeight: '100%',
+      maxHeight: 'calc(100vh - 200px)',
+      overflowY: 'auto' as any,
     }),
   },
   scrollContent: {
