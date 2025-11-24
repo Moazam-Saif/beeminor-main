@@ -312,7 +312,7 @@ export default function AuthScreen() {
                       placeholder={t.enterSponsorCode}
                       value={sponsorCode}
                       onChangeText={setSponsorCode}
-                      autoCapitalize="characters"
+                      autoCapitalize="none"
                       autoCorrect={false}
                       placeholderTextColor="#999"
                     />
