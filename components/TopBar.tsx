@@ -46,6 +46,9 @@ export default function TopBar() {
   const { t } = useLanguage();
   
   const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  
+  console.log('[TopBar] Current user email:', currentUser?.email);
+  console.log('[TopBar] Is admin:', isAdmin);
 
   const menuItems = [
     { label: t.faq, path: '/(tabs)/(home)/faq' },
