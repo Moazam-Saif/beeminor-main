@@ -1,21 +1,15 @@
 import { Tabs } from 'expo-router';
-import { Home, ShoppingBag, Hexagon, ListTodo, Shield } from 'lucide-react-native';
+import { Home, ShoppingBag, Hexagon, ListTodo } from 'lucide-react-native';
 import { View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TopBar from '@/components/TopBar';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
 
 const isWeb = Platform.OS === 'web';
-
-const ADMIN_EMAIL = 'martinremy100@gmail.com';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
-  const { currentUser } = useAuth();
-  
-  const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   
   return (
     <>
@@ -84,15 +78,12 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {isAdmin && (
-        <Tabs.Screen
-          name="admin"
-          options={{
-            title: 'Admin',
-            tabBarIcon: ({ color, size }) => <Shield color={color} size={size} />,
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="admin"
+        options={{
+          href: null,
+        }}
+      />
       </Tabs>
     </>
   );

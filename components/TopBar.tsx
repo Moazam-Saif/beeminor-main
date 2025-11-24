@@ -2,16 +2,19 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Platform, Dimensions } from 'react-native';
 import { useGame } from '@/contexts/GameContext';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Menu, X, Crown } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
 const MAX_WEB_WIDTH = 600;
+const ADMIN_EMAIL = 'martinremy100@gmail.com';
 
 export default function TopBar() {
   const { flowers, diamonds, bvrCoins } = useGame();
   const { currentLanguage, changeLanguage } = useLanguage();
+  const { currentUser } = useAuth();
   const [showLanguages, setShowLanguages] = useState<boolean>(false);
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const router = useRouter();
@@ -41,12 +44,15 @@ export default function TopBar() {
   const currentLangData = languages.find((l) => l.code === currentLanguage);
 
   const { t } = useLanguage();
+  
+  const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const menuItems = [
     { label: t.faq, path: '/(tabs)/(home)/faq' },
     { label: t.help, path: '/(tabs)/(home)/aide' },
     { label: t.account, path: '/(tabs)/(home)/compte' },
     { label: t.history, path: '/(tabs)/(home)/historique' },
+    ...(isAdmin ? [{ label: 'Admin', path: '/(tabs)/admin' }] : []),
   ];
 
   return (
