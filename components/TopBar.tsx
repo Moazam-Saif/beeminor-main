@@ -63,6 +63,8 @@ export default function TopBar() {
     ...(isAdmin ? [{ label: 'Admin', path: '/(tabs)/admin' }] : []),
   ];
 
+  const styles = createStyles(insets);
+
   return (
     <View style={styles.container}>
       <View style={styles.leftSection}>
@@ -189,7 +191,7 @@ export default function TopBar() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (insets: { top: number }) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -198,7 +200,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     width: '100%',
-    paddingTop: Platform.OS !== 'web' ? 40 : 10,
+    paddingTop: Platform.OS !== 'web' ? insets.top + 10 : 10,
     ...(isWeb && {
       maxWidth: '100%',
       alignSelf: 'center',
