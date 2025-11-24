@@ -199,7 +199,7 @@ const createStyles = (insets: { top: number }) => StyleSheet.create({
     paddingBottom: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     width: '100%',
-    paddingTop: Platform.OS !== 'web' ? insets.top + 8 : 10,
+    paddingTop: insets.top + 8,
     ...(isWeb && {
       maxWidth: '100%',
       alignSelf: 'center',
