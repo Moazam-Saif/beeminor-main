@@ -10,7 +10,7 @@ const isWeb = Platform.OS === 'web';
 const MAX_WEB_WIDTH = 600;
 const getWheelSize = () => {
   if (isWeb) {
-    return Math.min(MAX_WEB_WIDTH * 0.6, height * 0.35, 300);
+    return Math.min(MAX_WEB_WIDTH * 0.75, height * 0.45, 360);
   }
   return width * 0.85;
 };
@@ -407,9 +407,9 @@ const styles = StyleSheet.create({
     top: -5,
     width: 0,
     height: 0,
-    borderLeftWidth: 20,
-    borderRightWidth: 20,
-    borderTopWidth: 40,
+    borderLeftWidth: isWeb ? 12 : 20,
+    borderRightWidth: isWeb ? 12 : 20,
+    borderTopWidth: isWeb ? 24 : 40,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderTopColor: '#D4AF37',
