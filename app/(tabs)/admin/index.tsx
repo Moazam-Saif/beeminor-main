@@ -15,7 +15,8 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { useGame, BEE_TYPES } from '@/contexts/GameContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Shield, LogOut, Database, Settings, TrendingUp, Receipt } from 'lucide-react-native';
+import { Shield, LogOut, Database, Settings, TrendingUp, Receipt, Mail } from 'lucide-react-native';
+import type { SupportMessage } from '@/contexts/AdminContext';
 
 export default function AdminPanel() {
   const { isAuthenticated, login, logout } = useAdmin();
@@ -86,7 +87,7 @@ function AdminDashboard({ logout }: { logout: () => Promise<void> }) {
   const game = useGame();
   const admin = useAdmin();
   const { currentLanguage, changeLanguage } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'stats' | 'resources' | 'config' | 'transactions'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'resources' | 'config' | 'transactions' | 'messages'>('stats');
   const pendingTransactions = game.getPendingTransactions();
 
   const handleLogout = async () => {
@@ -150,6 +151,23 @@ function AdminDashboard({ logout }: { logout: () => Promise<void> }) {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[styles.tab, activeTab === 'messages' && styles.activeTab]}
+          onPress={() => setActiveTab('messages')}
+        >
+          <View style={styles.tabIconContainer}>
+            <Mail color={activeTab === 'messages' ? '#FF8C00' : '#8B4513'} size={18} />
+            {admin.supportMessages.filter((msg) => !msg.read).length > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{admin.supportMessages.filter((msg) => !msg.read).length}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.tabText, activeTab === 'messages' && styles.activeTabText]}>
+            Messages
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'config' && styles.activeTab]}
           onPress={() => setActiveTab('config')}
         >
@@ -164,6 +182,7 @@ function AdminDashboard({ logout }: { logout: () => Promise<void> }) {
         {activeTab === 'stats' && <StatsTab game={game} />}
         {activeTab === 'resources' && <ResourcesTab game={game} />}
         {activeTab === 'transactions' && <TransactionsTab game={game} />}
+        {activeTab === 'messages' && <MessagesTab admin={admin} />}
         {activeTab === 'config' && <ConfigTab game={game} admin={admin} currentLanguage={currentLanguage} changeLanguage={changeLanguage} />}
       </ScrollView>
     </View>
@@ -821,6 +840,225 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
             )}
           </View>
         ))
+      )}
+    </View>
+  );
+}
+
+function MessagesTab({ admin }: { admin: ReturnType<typeof useAdmin> }) {
+  const [selectedMessage, setSelectedMessage] = useState<SupportMessage | null>(null);
+  const [supportEmailInput, setSupportEmailInput] = useState<string>(admin.supportEmail);
+
+  useEffect(() => {
+    setSupportEmailInput(admin.supportEmail);
+  }, [admin.supportEmail]);
+
+  const handleSelectMessage = async (message: SupportMessage) => {
+    setSelectedMessage(message);
+    if (!message.read) {
+      await admin.markMessageAsRead(message.id);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Êtes-vous sûr de vouloir supprimer ce message?');
+      if (confirmed) {
+        await admin.deleteMessage(messageId);
+        if (selectedMessage?.id === messageId) {
+          setSelectedMessage(null);
+        }
+        alert('Message supprimé!');
+      }
+    } else {
+      Alert.alert(
+        'Supprimer le message',
+        'Êtes-vous sûr de vouloir supprimer ce message?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Supprimer',
+            style: 'destructive',
+            onPress: async () => {
+              await admin.deleteMessage(messageId);
+              if (selectedMessage?.id === messageId) {
+                setSelectedMessage(null);
+              }
+              Alert.alert('Succès', 'Message supprimé!');
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  const handleUpdateSupportEmail = async () => {
+    if (!supportEmailInput.trim()) {
+      if (Platform.OS === 'web') {
+        alert('Veuillez entrer une adresse email valide');
+      } else {
+        Alert.alert('Erreur', 'Veuillez entrer une adresse email valide');
+      }
+      return;
+    }
+
+    const result = await admin.updateSupportEmail(supportEmailInput);
+
+    if (result.success) {
+      if (Platform.OS === 'web') {
+        alert('Email de support mis à jour avec succès!');
+      } else {
+        Alert.alert('Succès', 'Email de support mis à jour avec succès!');
+      }
+    } else {
+      if (Platform.OS === 'web') {
+        alert(result.error || 'Erreur lors de la mise à jour de l&apos;email');
+      } else {
+        Alert.alert('Erreur', result.error || 'Erreur lors de la mise à jour de l\'email');
+      }
+    }
+  };
+
+  const unreadMessages = admin.supportMessages.filter((msg) => !msg.read);
+  const readMessages = admin.supportMessages.filter((msg) => msg.read);
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>⚙️ Configuration du Support</Text>
+
+      <View style={styles.passwordSection}>
+        <Text style={styles.passwordLabel}>Email de Support</Text>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Adresse Email</Text>
+          <TextInput
+            style={styles.addressInput}
+            value={supportEmailInput}
+            onChangeText={setSupportEmailInput}
+            placeholder="support@beegame.app"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.updateAddressButton]} 
+          onPress={handleUpdateSupportEmail}
+        >
+          <Text style={styles.actionButtonText}>💾 Mettre à jour l&apos;email</Text>
+        </TouchableOpacity>
+
+        <View style={styles.infoBox}>
+          <Text style={styles.infoBoxText}>
+            ℹ️ Cet email sera affiché dans la page d&apos;aide de l&apos;application.
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>📨 Messages non lus ({unreadMessages.length})</Text>
+      
+      {unreadMessages.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>Aucun message non lu</Text>
+        </View>
+      ) : (
+        unreadMessages.map((msg) => (
+          <TouchableOpacity
+            key={msg.id}
+            style={[styles.messageCard, styles.unreadMessageCard]}
+            onPress={() => handleSelectMessage(msg)}
+          >
+            <View style={styles.messageHeader}>
+              <Text style={styles.messageSubject}>{msg.subject}</Text>
+              <Text style={styles.messageDate}>
+                {new Date(msg.createdAt).toLocaleDateString('fr-FR')}
+              </Text>
+            </View>
+            <Text style={styles.messageUserEmail}>De: {msg.userEmail}</Text>
+            <Text style={styles.messagePreview} numberOfLines={2}>
+              {msg.message}
+            </Text>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteMessageButton]}
+              onPress={() => handleDeleteMessage(msg.id)}
+            >
+              <Text style={styles.actionButtonText}>❌ Supprimer</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))
+      )}
+
+      <Text style={styles.sectionTitle}>📧 Messages lus ({readMessages.length})</Text>
+      
+      {readMessages.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>Aucun message lu</Text>
+        </View>
+      ) : (
+        readMessages.slice(0, 20).map((msg) => (
+          <TouchableOpacity
+            key={msg.id}
+            style={styles.messageCard}
+            onPress={() => handleSelectMessage(msg)}
+          >
+            <View style={styles.messageHeader}>
+              <Text style={styles.messageSubject}>{msg.subject}</Text>
+              <Text style={styles.messageDate}>
+                {new Date(msg.createdAt).toLocaleDateString('fr-FR')}
+              </Text>
+            </View>
+            <Text style={styles.messageUserEmail}>De: {msg.userEmail}</Text>
+            <Text style={styles.messagePreview} numberOfLines={2}>
+              {msg.message}
+            </Text>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteMessageButton]}
+              onPress={() => handleDeleteMessage(msg.id)}
+            >
+              <Text style={styles.actionButtonText}>❌ Supprimer</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))
+      )}
+
+      {selectedMessage && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Message Complet</Text>
+              <TouchableOpacity
+                onPress={() => setSelectedMessage(null)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalBody}>
+              <Text style={styles.modalLabel}>Sujet:</Text>
+              <Text style={styles.modalValue}>{selectedMessage.subject}</Text>
+              
+              <Text style={styles.modalLabel}>De:</Text>
+              <Text style={styles.modalValue}>{selectedMessage.userEmail}</Text>
+              
+              <Text style={styles.modalLabel}>Date:</Text>
+              <Text style={styles.modalValue}>
+                {new Date(selectedMessage.createdAt).toLocaleString('fr-FR')}
+              </Text>
+              
+              <Text style={styles.modalLabel}>Message:</Text>
+              <Text style={styles.modalMessageText}>{selectedMessage.message}</Text>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.closeModalButton]}
+              onPress={() => setSelectedMessage(null)}
+            >
+              <Text style={styles.actionButtonText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -1665,5 +1903,125 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  messageCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  unreadMessageCard: {
+    borderColor: '#FF8C00',
+    borderWidth: 2,
+    backgroundColor: '#FFF9F0',
+  },
+  messageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  messageSubject: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#8B4513',
+    flex: 1,
+  },
+  messageDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  messageUserEmail: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  messagePreview: {
+    fontSize: 14,
+    color: '#8B4513',
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+  deleteMessageButton: {
+    backgroundColor: '#DC143C',
+  },
+  modalOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    maxWidth: 600,
+    width: '100%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFD700',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#8B4513',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  closeButtonText: {
+    fontSize: 24,
+    color: '#8B4513',
+    fontWeight: '700' as const,
+  },
+  modalBody: {
+    flex: 1,
+    marginBottom: 20,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#666',
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  modalValue: {
+    fontSize: 16,
+    color: '#8B4513',
+    marginBottom: 10,
+  },
+  modalMessageText: {
+    fontSize: 15,
+    color: '#8B4513',
+    lineHeight: 22,
+    paddingTop: 5,
+  },
+  closeModalButton: {
+    backgroundColor: '#4169E1',
   },
 });

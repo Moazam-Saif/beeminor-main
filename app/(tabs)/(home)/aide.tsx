@@ -1,31 +1,47 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAdmin } from '@/contexts/AdminContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AideScreen() {
+  const admin = useAdmin();
+  const auth = useAuth();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (!subject.trim() || !message.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      if (Platform.OS === 'web') {
+        alert('Veuillez remplir tous les champs');
+      } else {
+        Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      }
       return;
     }
 
-    Alert.alert(
-      'Message envoyé',
-      'Votre message a été envoyé avec succès. Notre équipe vous répondra dans les plus brefs délais.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setSubject('');
-            setMessage('');
-          },
-        },
-      ]
-    );
+    const userEmail = auth.currentUser?.email || 'Utilisateur anonyme';
+    const result = await admin.addSupportMessage(subject, message, userEmail);
+
+    if (result.success) {
+      setSubject('');
+      setMessage('');
+      if (Platform.OS === 'web') {
+        alert('Votre message a été envoyé avec succès. Notre équipe vous répondra dans les plus brefs délais.');
+      } else {
+        Alert.alert(
+          'Message envoyé',
+          'Votre message a été envoyé avec succès. Notre équipe vous répondra dans les plus brefs délais.'
+        );
+      }
+    } else {
+      if (Platform.OS === 'web') {
+        alert('Erreur lors de l\'envoi du message. Veuillez réessayer.');
+      } else {
+        Alert.alert('Erreur', 'Erreur lors de l\'envoi du message. Veuillez réessayer.');
+      }
+    }
   };
 
   return (
@@ -59,7 +75,7 @@ export default function AideScreen() {
 
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>📧 Support Email</Text>
-            <Text style={styles.infoText}>support@beegame.app</Text>
+            <Text style={styles.infoText}>{admin.supportEmail}</Text>
             <Text style={styles.infoSubtext}>Réponse sous 24-48h</Text>
           </View>
 
