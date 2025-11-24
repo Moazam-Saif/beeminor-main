@@ -236,8 +236,10 @@ export default function RouletteScreen() {
             const middleRad = (middleAngle * Math.PI) / 180;
 
             const imageRadius = RADIUS * 0.45;
-            const imageX = RADIUS + imageRadius * Math.cos(middleRad) - 20;
-            const imageY = RADIUS + imageRadius * Math.sin(middleRad) - 20;
+            const imageSize = isWeb ? 28 : 40;
+            const imageOffset = imageSize / 2;
+            const imageX = RADIUS + imageRadius * Math.cos(middleRad) - imageOffset;
+            const imageY = RADIUS + imageRadius * Math.sin(middleRad) - imageOffset;
 
             return (
               <Image
@@ -248,6 +250,8 @@ export default function RouletteScreen() {
                   {
                     left: imageX,
                     top: imageY,
+                    width: imageSize,
+                    height: imageSize,
                   },
                 ]}
               />
@@ -492,14 +496,12 @@ const styles = StyleSheet.create({
   },
   wheelImage: {
     position: 'absolute',
-    width: 40,
-    height: 40,
   },
   centerButton: {
     position: 'absolute',
     backgroundColor: '#FF8C00',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
+    paddingHorizontal: isWeb ? 20 : 32,
+    paddingVertical: isWeb ? 10 : 16,
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
@@ -515,7 +517,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   centerButtonLabel: {
-    fontSize: 18,
+    fontSize: isWeb ? 14 : 18,
     fontWeight: 'bold' as const,
     color: '#fff',
   },

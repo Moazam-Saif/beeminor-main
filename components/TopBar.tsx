@@ -192,12 +192,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: isWeb ? 12 : 10,
+    paddingHorizontal: isWeb ? 20 : 10,
     paddingVertical: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    maxWidth: isWeb ? MAX_WEB_WIDTH : undefined,
     width: '100%',
-    alignSelf: 'center',
   },
   leftSection: {
     flexDirection: 'row',
