@@ -47,7 +47,10 @@ export default function TopBar() {
   
   const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   
+  console.log('[TopBar] Current user object:', JSON.stringify(currentUser));
   console.log('[TopBar] Current user email:', currentUser?.email);
+  console.log('[TopBar] Expected admin email:', ADMIN_EMAIL);
+  console.log('[TopBar] Email lowercase match:', currentUser?.email?.toLowerCase(), '===', ADMIN_EMAIL.toLowerCase());
   console.log('[TopBar] Is admin:', isAdmin);
 
   const menuItems = [
@@ -160,6 +163,10 @@ export default function TopBar() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.debugInfo}>
+                <Text style={styles.debugText}>Email: {currentUser?.email || 'Non connecté'}</Text>
+                <Text style={styles.debugText}>Admin: {isAdmin ? 'Oui' : 'Non'}</Text>
+              </View>
               {menuItems.map((item, index) => (
                 <TouchableOpacity
                   key={index}
@@ -322,5 +329,18 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#8B4513',
     textAlign: 'center',
+  },
+  debugInfo: {
+    backgroundColor: '#FFF8DC',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#8B4513',
+    marginBottom: 4,
   },
 });
