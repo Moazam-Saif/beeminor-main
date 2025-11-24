@@ -196,10 +196,10 @@ const createStyles = (insets: { top: number }) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: isWeb ? 20 : 10,
-    paddingVertical: 10,
+    paddingBottom: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     width: '100%',
-    paddingTop: Platform.OS !== 'web' ? insets.top + 10 : 10,
+    paddingTop: Platform.OS !== 'web' ? insets.top + 8 : 10,
     ...(isWeb && {
       maxWidth: '100%',
       alignSelf: 'center',
