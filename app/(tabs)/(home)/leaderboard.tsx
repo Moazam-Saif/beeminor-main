@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGame } from '@/contexts/GameContext';
@@ -65,14 +65,17 @@ export default function LeaderboardScreen() {
   };
 
   const getRankIcon = (rank: number) => {
+    const iconSize = Platform.OS === 'web' ? 18 : 24;
+    const smallerIconSize = Platform.OS === 'web' ? 16 : 22;
+    
     if (rank === 1) {
-      return <Crown size={24} color="#FFD700" fill="#FFD700" />;
+      return <Crown size={iconSize} color="#FFD700" fill="#FFD700" />;
     }
     if (rank === 2) {
-      return <Trophy size={22} color="#C0C0C0" fill="#C0C0C0" />;
+      return <Trophy size={smallerIconSize} color="#C0C0C0" fill="#C0C0C0" />;
     }
     if (rank === 3) {
-      return <Medal size={22} color="#CD7F32" fill="#CD7F32" />;
+      return <Medal size={smallerIconSize} color="#CD7F32" fill="#CD7F32" />;
     }
     return null;
   };
@@ -90,8 +93,8 @@ export default function LeaderboardScreen() {
         colors={['#4A7C26', '#3d6b1f', '#2d5016']}
         style={styles.gradient}
       >
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) + 20 }]}>
-          <Crown size={48} color="#FFD700" fill="#FFD700" />
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) + (Platform.OS === 'web' ? 10 : 20) }]}>
+          <Crown size={Platform.OS === 'web' ? 36 : 48} color="#FFD700" fill="#FFD700" />
           <Text style={styles.headerTitle}>{t.diamondLeaderboard || 'Classement Diamants'}</Text>
           <Text style={styles.headerSubtitle}>
             {t.topProducers || 'Top Producteurs Annuels'}
@@ -176,20 +179,20 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingBottom: 16,
+    paddingBottom: Platform.OS === 'web' ? 10 : 16,
     paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: Platform.OS === 'web' ? 22 : 28,
     fontWeight: 'bold' as const,
     color: '#FFD700',
-    marginTop: 12,
+    marginTop: Platform.OS === 'web' ? 8 : 12,
     textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'web' ? 13 : 16,
     color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 4,
+    marginTop: Platform.OS === 'web' ? 2 : 4,
     textAlign: 'center',
   },
   scrollView: {
@@ -197,17 +200,17 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: Platform.OS === 'web' ? 12 : 16,
+    paddingBottom: Platform.OS === 'web' ? 24 : 40,
     flexGrow: 1,
   },
   leaderboardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    marginBottom: 10,
+    paddingVertical: Platform.OS === 'web' ? 8 : 14,
+    paddingHorizontal: Platform.OS === 'web' ? 12 : 16,
+    borderRadius: Platform.OS === 'web' ? 12 : 16,
+    marginBottom: Platform.OS === 'web' ? 6 : 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   topThreeItem: {
-    paddingVertical: 18,
+    paddingVertical: Platform.OS === 'web' ? 10 : 18,
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 6,
@@ -230,26 +233,26 @@ const styles = StyleSheet.create({
     borderColor: '#FFF',
   },
   rankContainer: {
-    width: 50,
+    width: Platform.OS === 'web' ? 40 : 50,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankText: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'web' ? 14 : 18,
     fontWeight: 'bold' as const,
     color: '#8B4513',
   },
   userInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: Platform.OS === 'web' ? 8 : 12,
   },
   userName: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'web' ? 13 : 16,
     fontWeight: '600' as const,
     color: '#8B4513',
   },
   topThreeText: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'web' ? 14 : 18,
     fontWeight: 'bold' as const,
     color: '#8B4513',
   },
@@ -260,17 +263,17 @@ const styles = StyleSheet.create({
   diamondContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Platform.OS === 'web' ? 8 : 12,
+    paddingVertical: Platform.OS === 'web' ? 4 : 6,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
+    borderRadius: Platform.OS === 'web' ? 8 : 12,
   },
   diamondEmoji: {
-    fontSize: 18,
-    marginRight: 6,
+    fontSize: Platform.OS === 'web' ? 14 : 18,
+    marginRight: Platform.OS === 'web' ? 4 : 6,
   },
   diamondText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'web' ? 13 : 16,
     fontWeight: 'bold' as const,
     color: '#8B4513',
   },
