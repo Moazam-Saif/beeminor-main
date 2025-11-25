@@ -510,7 +510,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
     const diamondsEarned = Math.floor(amount / 300);
     const flowersEarned = diamondsEarned;
-    const bvrEarned = diamondsEarned * 3;
+    const bvrEarned = diamondsEarned * 2;
 
     setHoney((current) => current - amount);
     setDiamonds((current) => current + diamondsEarned);
