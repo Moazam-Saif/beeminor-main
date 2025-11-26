@@ -16,7 +16,7 @@ type AnimatedBee = {
 };
 
 export default function HomeScreen() {
-  const { honey, getTotalProduction, getTotalBees, getTotalCapacity, isLoaded, sellHoney } = useGame();
+  const { honey, getTotalProduction, getTotalBees, getMaxCapacity, isLoaded, sellHoney } = useGame();
   const { t } = useLanguage();
   const beesAnimated = useRef<AnimatedBee[]>([]);
   const [showStats, setShowStats] = useState<boolean>(false);
@@ -195,7 +195,7 @@ export default function HomeScreen() {
 
               <View style={styles.statCardModal}>
                 <Text style={styles.statLabelModal}>{t.maxCapacity}</Text>
-                <Text style={styles.statValueModal}>{formatNumber(getTotalCapacity())} 🍯</Text>
+                <Text style={styles.statValueModal}>{formatNumber(getMaxCapacity())} 🍯</Text>
               </View>
 
               <TouchableOpacity
