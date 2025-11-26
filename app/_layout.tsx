@@ -8,6 +8,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AdminProvider } from '@/contexts/AdminContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CryptoProvider } from '@/contexts/CryptoContext';
+import { trpc, trpcClient } from '@/lib/trpc';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -56,20 +57,22 @@ function RootLayoutNav() {
 export default function RootLayout() {
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <LanguageProvider>
-          <AuthProvider>
-            <CryptoProvider>
-              <GameProvider>
-                <AdminProvider>
-                  <RootLayoutNav />
-                </AdminProvider>
-              </GameProvider>
-            </CryptoProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <LanguageProvider>
+            <AuthProvider>
+              <CryptoProvider>
+                <GameProvider>
+                  <AdminProvider>
+                    <RootLayoutNav />
+                  </AdminProvider>
+                </GameProvider>
+              </CryptoProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </trpc.Provider>
   );
 }
