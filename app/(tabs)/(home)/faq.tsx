@@ -83,7 +83,7 @@ export default function FAQScreen() {
 
           <View style={styles.developerInfo}>
             <Text style={styles.developerText}>
-              Application développée par le Fondateur Rémy MARTIN et son équipe au surnom Sricos
+              Application développée par le Fondateur Rémy MARTIN
             </Text>
           </View>
         </ScrollView>
