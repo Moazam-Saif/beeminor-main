@@ -19,24 +19,16 @@ export default function CompteScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
-      [
-        {
-          text: 'Annuler',
-          style: 'cancel',
-        },
-        {
-          text: 'Déconnexion',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/auth');
-          },
-        },
-      ]
-    );
+    const confirmed = window.confirm('Are you sure you want to logout?');
+    if (confirmed) {
+      logout().then(() => {
+        window.alert('Logged out successfully!');
+        router.replace('/auth');
+      }).catch((error) => {
+        console.error('Logout error:', error);
+        window.alert('Error during logout');
+      });
+    }
   };
 
   const formatNumber = (num: number) => {

@@ -11,15 +11,6 @@ export function AuthGameBridge() {
   const { setUserId } = useGame();
 
   useEffect(() => {
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const shouldSkipAuth = isDevelopment;
-
-    if (shouldSkipAuth) {
-      // In development mode, use a mock user ID
-      setUserId('dev_user_123');
-      return;
-    }
-
     if (isAuthenticated && currentUser?.id) {
       // Set user ID in GameContext when user is authenticated
       setUserId(currentUser.id);

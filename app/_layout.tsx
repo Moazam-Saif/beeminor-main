@@ -21,23 +21,10 @@ function RootLayoutNav() {
   const router = useRouter();
   const [navigationReady, setNavigationReady] = useState(false);
 
-  // Development mode - skip authentication 
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const shouldSkipAuth = isDevelopment; // Set to true to bypass auth entirely
-
   useEffect(() => {
-    if (!isLoaded && !shouldSkipAuth) return;
+    if (!isLoaded) return;
 
     const inAuthGroup = segments[0] === 'auth';
-
-    if (shouldSkipAuth) {
-      // Skip to main app in development mode
-      if (inAuthGroup) {
-        router.replace('/(tabs)/(home)');
-      }
-      setNavigationReady(true);
-      return;
-    }
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/auth');
@@ -46,21 +33,17 @@ function RootLayoutNav() {
     }
     
     setNavigationReady(true);
-  }, [isAuthenticated, isLoaded, segments, router, shouldSkipAuth]);
+  }, [isAuthenticated, isLoaded, segments, router]);
 
   useEffect(() => {
-    if ((navigationReady && isLoaded) || (shouldSkipAuth && navigationReady)) {
+    if (navigationReady && isLoaded) {
       setTimeout(() => {
         SplashScreen.hideAsync().catch(() => {});
       }, 100);
     }
-  }, [navigationReady, isLoaded, shouldSkipAuth]);
+  }, [navigationReady, isLoaded]);
 
-  if ((!isLoaded || !navigationReady) && !shouldSkipAuth) {
-    return null;
-  }
-
-  if (shouldSkipAuth && !navigationReady) {
+  if (!isLoaded || !navigationReady) {
     return null;
   }
 

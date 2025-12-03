@@ -772,6 +772,29 @@ export const [GameProvider, useGame] = createContextHook(() => {
     }
   }, [sponsorCode, isAffiliatedToDev]);
 
+  const resetGameState = useCallback(() => {
+    setUserId(null);
+    setHoney(1000);
+    setFlowers(0);
+    setDiamonds(0);
+    setTickets(0);
+    setBvrCoins(0);
+    setBees({});
+    setAlveoles({});
+    setInvitedFriends(0);
+    setClaimedMissions([]);
+    setReferralCode('');
+    setReferrals([]);
+    setTotalReferralEarnings(0);
+    setSponsorCode('');
+    setIsAffiliatedToDev(false);
+    setHasPendingFunds(false);
+    setTransactions([]);
+    setDiamondsThisYear(0);
+    setLeaderboard([]);
+    setIsLoaded(false);
+  }, []);
+
   const claimMission = useCallback((missionId: number, flowersReward: number, ticketsReward: number) => {
     if (claimedMissions.includes(missionId)) return false;
 
@@ -985,5 +1008,6 @@ export const [GameProvider, useGame] = createContextHook(() => {
     getCurrentUserRank,
     updateLeaderboard,
     setUserId,
+    resetGameState, // Add resetGameState for logout functionality
   ]);
 });

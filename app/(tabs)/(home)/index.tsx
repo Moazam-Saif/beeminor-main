@@ -135,28 +135,19 @@ export default function HomeScreen() {
               style={styles.sellButton}
               onPress={() => {
                 if (honey < 300) {
-                  Alert.alert(t.error, t.needMinHoney);
+                  window.alert('Error: You need at least 300 honey to sell!');
                   return;
                 }
-                Alert.alert(
-                  t.sellHoney,
-                  t.honeyExchangeRate,
-                  [
-                    {
-                      text: t.cancel,
-                      style: 'cancel',
-                    },
-                    {
-                      text: t.sellAllHoney,
-                      onPress: () => {
-                        const success = sellHoney(Math.floor(honey));
-                        if (success) {
-                          Alert.alert(t.sold, t.transactionSuccess);
-                        }
-                      },
-                    },
-                  ]
-                );
+                
+                const confirmed = window.confirm(`Sell ${Math.floor(honey)} honey for diamonds and flowers?`);
+                if (confirmed) {
+                  const success = sellHoney(Math.floor(honey));
+                  if (success) {
+                    window.alert('Success: Honey sold successfully!');
+                  } else {
+                    window.alert('Error: Failed to sell honey');
+                  }
+                }
               }}
             >
               <Text style={styles.sellButtonText}>{t.sellHoney}</Text>
