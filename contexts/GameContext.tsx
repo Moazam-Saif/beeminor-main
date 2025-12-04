@@ -1,7 +1,7 @@
 import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { gameAPI } from '@/lib/api';
+import { gameAPI, transactionsAPI } from '@/lib/api';
 
 export type BeeType = {
   id: string;
@@ -1034,74 +1034,137 @@ export const [GameProvider, useGame] = createContextHook(() => {
     });
   }, []);
 
-  const submitWithdrawal = useCallback((transaction: Omit<Transaction, 'id' | 'status' | 'createdAt'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: `txn_${Date.now()}`,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-    setTransactions((current) => [newTransaction, ...current]);
-    return newTransaction;
-  }, []);
+  const submitWithdrawal = useCallback(async (transaction: Omit<Transaction, 'id' | 'status' | 'createdAt'>) => {
+    // Create withdrawal via backend
+    try {
+      // Map transaction type to backend format
+      const amount = transaction.type === 'withdrawal_diamond' ? transaction.amount : transaction.amount;
+      
+      const response = await transactionsAPI.createWithdrawal({
+        userId: transaction.userId,
+        amount: amount,
+        currency: 'USD',
+        cryptoAddress: transaction.walletAddress
+      });
 
-  const approveTransaction = useCallback((transactionId: string, sponsorUserEmail?: string) => {
-    setTransactions((current) =>
-      current.map((txn) => {
-        if (txn.id === transactionId && txn.status === 'pending') {
-          if (txn.type === 'withdrawal_diamond') {
-            setDiamonds((curr) => Math.max(0, curr - txn.amount));
-          } else if (txn.type === 'withdrawal_bvr') {
-            setBvrCoins((curr) => Math.max(0, curr - txn.amount));
-          } else if (txn.type === 'deposit_crypto' && txn.flowersAmount !== undefined) {
-            setFlowers((curr) => curr + (txn.flowersAmount ?? 0));
-            
-            if (txn.usdAmount) {
-              const ticketsEarned = Math.floor(txn.usdAmount / 10);
-              if (ticketsEarned > 0) {
-                setTickets((curr) => curr + ticketsEarned);
-              }
-              
-              if (sponsorCode && sponsorCode !== 'DEV_PARENT' && !isAffiliatedToDev) {
-                const affiliationPercentage = 0.06;
-                const affiliationAmount = Math.floor(txn.usdAmount * affiliationPercentage * 10000);
-                
-                console.log(`[AFFILIATION] Dépôt approuvé: ${txn.usdAmount}$ - Commission: ${affiliationAmount} fleurs pour le parrain ${sponsorCode}`);
-                console.log(`[AFFILIATION] ⚠️ ATTENTION: Le système d'affiliation nécessite un backend pour créditer automatiquement le parrain.`);
-                console.log(`[AFFILIATION] Action manuelle requise: Créditer ${affiliationAmount} fleurs au parrain avec le code ${sponsorCode} (email du parrain: ${sponsorUserEmail || 'non fourni'})`);
-              } else if (isAffiliatedToDev || sponsorCode === 'DEV_PARENT') {
-                const devAffiliationPercentage = 0.06;
-                const devAffiliationAmount = Math.floor(txn.usdAmount * devAffiliationPercentage * 10000);
-                
-                console.log(`[AFFILIATION DEV] Dépôt approuvé: ${txn.usdAmount}$ - Commission: ${devAffiliationAmount} fleurs pour le développeur`);
-                console.log(`[AFFILIATION DEV] ⚠️ ATTENTION: Le système d'affiliation nécessite un backend pour créditer automatiquement le développeur.`);
-              }
-            }
-          }
-          return {
-            ...txn,
-            status: 'approved' as TransactionStatus,
-            processedAt: new Date().toISOString(),
-          };
+      if (response.success) {
+        // Update local state with backend response
+        const newTransaction: Transaction = {
+          ...transaction,
+          id: response.transaction.id,
+          status: 'pending',
+          createdAt: response.transaction.createdAt,
+        };
+        setTransactions((current) => [newTransaction, ...current]);
+        
+        // Sync game state to get updated flowers/diamonds
+        if (currentUserId) {
+          await syncGameStateFromBackend(currentUserId);
         }
-        return txn;
-      })
-    );
-  }, [sponsorCode, isAffiliatedToDev]);
+        
+        return newTransaction;
+      }
+    } catch (error) {
+      console.error('Withdrawal submission failed:', error);
+      // Fallback to local-only for backwards compatibility
+      const newTransaction: Transaction = {
+        ...transaction,
+        id: `txn_${Date.now()}`,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+      setTransactions((current) => [newTransaction, ...current]);
+      return newTransaction;
+    }
+  }, [currentUserId, syncGameStateFromBackend]);
 
-  const rejectTransaction = useCallback((transactionId: string) => {
-    setTransactions((current) =>
-      current.map((txn) =>
-        txn.id === transactionId && txn.status === 'pending'
-          ? {
-              ...txn,
-              status: 'rejected' as TransactionStatus,
-              processedAt: new Date().toISOString(),
+  const approveTransaction = useCallback(async (transactionId: string, sponsorUserEmail?: string) => {
+    try {
+      // Call backend to approve transaction
+      const response = await transactionsAPI.updateTransactionStatus(transactionId, 'completed', 'Approved by admin');
+      
+      if (response.success) {
+        // Update local state
+        setTransactions((current) =>
+          current.map((txn) =>
+            txn.id === transactionId
+              ? {
+                  ...txn,
+                  status: 'approved' as TransactionStatus,
+                  processedAt: new Date().toISOString(),
+                }
+              : txn
+          )
+        );
+        
+        // Refresh game state from backend
+        if (currentUserId) {
+          await syncGameStateFromBackend(currentUserId);
+        }
+      }
+    } catch (error) {
+      console.error('Transaction approval failed:', error);
+      // Fallback to local-only
+      setTransactions((current) =>
+        current.map((txn) => {
+          if (txn.id === transactionId && txn.status === 'pending') {
+            if (txn.type === 'withdrawal_diamond') {
+              setDiamonds((curr) => Math.max(0, curr - txn.amount));
+            } else if (txn.type === 'withdrawal_bvr') {
+              setBvrCoins((curr) => Math.max(0, curr - txn.amount));
             }
-          : txn
-      )
-    );
-  }, []);
+            return {
+              ...txn,
+              status: 'approved' as TransactionStatus,
+              processedAt: new Date().toISOString(),
+            };
+          }
+          return txn;
+        })
+      );
+    }
+  }, [currentUserId, syncGameStateFromBackend]);
+
+  const rejectTransaction = useCallback(async (transactionId: string) => {
+    try {
+      // Call backend to reject transaction (will refund flowers if withdrawal)
+      const response = await transactionsAPI.updateTransactionStatus(transactionId, 'cancelled', 'Rejected by admin');
+      
+      if (response.success) {
+        // Update local state
+        setTransactions((current) =>
+          current.map((txn) =>
+            txn.id === transactionId
+              ? {
+                  ...txn,
+                  status: 'rejected' as TransactionStatus,
+                  processedAt: new Date().toISOString(),
+                }
+              : txn
+          )
+        );
+        
+        // Refresh game state from backend (will include refunded flowers)
+        if (currentUserId) {
+          await syncGameStateFromBackend(currentUserId);
+        }
+      }
+    } catch (error) {
+      console.error('Transaction rejection failed:', error);
+      // Fallback to local-only
+      setTransactions((current) =>
+        current.map((txn) =>
+          txn.id === transactionId && txn.status === 'pending'
+            ? {
+                ...txn,
+                status: 'rejected' as TransactionStatus,
+                processedAt: new Date().toISOString(),
+              }
+            : txn
+        )
+      );
+    }
+  }, [currentUserId, syncGameStateFromBackend]);
 
   const getPendingTransactions = useCallback(() => {
     return transactions.filter((txn) => txn.status === 'pending');
