@@ -496,14 +496,63 @@ router.post('/:userId/spin-roulette', async (req, res) => {
   }
 });
 
-// @route   POST /api/game/:userId/collect-honey
-// @desc    Collect honey (placeholder)
-// @access  Public
-router.post('/:userId/collect-honey', async (req, res) => {
-  res.status(501).json({
-    success: false,
-    message: 'Collect honey feature not implemented yet'
-  });
+// @route   POST /api/game/:userId/add-test-resources
+// @desc    Add testing resources (for development only)
+// @access  Public (should be removed in production)
+router.post('/:userId/add-test-resources', async (req, res) => {
+  try {
+    const { honey, flowers, tickets, diamonds, bvrCoins } = req.body;
+
+    // Get current game state
+    let gameState = await GameState.findOne({ userId: req.params.userId });
+    if (!gameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    // Add resources
+    if (honey) gameState.honey += honey;
+    if (flowers) gameState.flowers += flowers;
+    if (tickets) gameState.tickets += tickets;
+    if (diamonds) gameState.diamonds += diamonds;
+    if (bvrCoins) gameState.bvrCoins += bvrCoins;
+    
+    gameState.lastUpdated = new Date();
+    await gameState.save();
+
+    res.json({
+      success: true,
+      message: 'Test resources added successfully',
+      added: { honey, flowers, tickets, diamonds, bvrCoins },
+      gameState: {
+        userId: gameState.userId.toString(),
+        honey: gameState.honey,
+        flowers: gameState.flowers,
+        diamonds: gameState.diamonds,
+        tickets: gameState.tickets,
+        bvrCoins: gameState.bvrCoins,
+        bees: Object.fromEntries(gameState.bees),
+        alveoles: Object.fromEntries(gameState.alveoles),
+        invitedFriends: gameState.invitedFriends,
+        claimedMissions: gameState.claimedMissions,
+        referrals: gameState.referrals,
+        totalReferralEarnings: gameState.totalReferralEarnings,
+        hasPendingFunds: gameState.hasPendingFunds,
+        transactions: gameState.transactions,
+        diamondsThisYear: gameState.diamondsThisYear,
+        yearStartDate: gameState.yearStartDate
+      }
+    });
+  } catch (error) {
+    console.error('Add test resources error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error adding test resources',
+      error: error.message
+    });
+  }
 });
 
 module.exports = router;
