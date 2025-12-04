@@ -51,35 +51,28 @@ const PRIZES: Prize[] = [
 export default function RouletteScreen() {
   const gameContext = useGame();
   const { t } = useLanguage();
-  const { tickets, addBees, addFlowers } = gameContext;
+  const { tickets, spinRoulette } = gameContext;
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
   const rotateValue = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
-  const getWeightedRandomPrize = useCallback(() => {
-    const totalWeight = PRIZES.reduce((sum, prize) => sum + prize.weight, 0);
-    let random = Math.random() * totalWeight;
-
-    for (let i = 0; i < PRIZES.length; i++) {
-      random -= PRIZES[i].weight;
-      if (random <= 0) {
-        return i;
-      }
-    }
-    return 0;
-  }, []);
-
-  const spinWheel = useCallback(() => {
+  const spinWheel = useCallback(async () => {
     if (isSpinning || tickets <= 0) return;
-
-    const success = gameContext.useTicket();
-    if (!success) return;
 
     setIsSpinning(true);
     setWonPrize(null);
 
-    const randomPrizeIndex = getWeightedRandomPrize();
+    // Call backend to spin (server determines prize - prevents cheating)
+    const result = await spinRoulette();
+    
+    if (!result.success) {
+      setIsSpinning(false);
+      console.error('Spin failed:', result.message);
+      return;
+    }
+
+    const randomPrizeIndex = result.prizeIndex || 0;
     const prize = PRIZES[randomPrizeIndex];
 
     const degreesPerSegment = 360 / PRIZES.length;
@@ -94,16 +87,10 @@ export default function RouletteScreen() {
     }).start(() => {
       setWonPrize(prize);
       setIsSpinning(false);
-
-      if (prize.type === 'bee' && prize.beeType && prize.beeCount) {
-        addBees(prize.beeType, prize.beeCount);
-      } else if (prize.type === 'flowers' && prize.flowersAmount) {
-        addFlowers(prize.flowersAmount);
-      }
     });
 
-    console.log('Prize won:', prize.label, 'Weight:', prize.weight, 'Index:', randomPrizeIndex);
-  }, [isSpinning, tickets, gameContext, rotateValue, addBees, addFlowers, getWeightedRandomPrize]);
+    console.log('Prize won:', prize.label, 'Index:', randomPrizeIndex);
+  }, [isSpinning, tickets, spinRoulette, rotateValue]);
 
   const rotation = rotateValue.interpolate({
     inputRange: [0, 360],

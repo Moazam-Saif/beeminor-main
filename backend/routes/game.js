@@ -383,6 +383,119 @@ router.post('/:userId/upgrade-alveole', async (req, res) => {
   }
 });
 
+// @route   POST /api/game/:userId/spin-roulette
+// @desc    Spin roulette with server-side randomization
+// @access  Public
+router.post('/:userId/spin-roulette', async (req, res) => {
+  try {
+    // Get current game state
+    let gameState = await GameState.findOne({ userId: req.params.userId });
+    if (!gameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    // Check if user has tickets
+    if (gameState.tickets <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No tickets available'
+      });
+    }
+
+    // Prize configuration (server-side - prevents client manipulation)
+    const PRIZES = [
+      { id: '1', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, weight: 25, rarity: 'common' },
+      { id: '2', label: '1000', type: 'flowers', flowersAmount: 1000, weight: 22, rarity: 'common' },
+      { id: '3', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, weight: 20, rarity: 'uncommon' },
+      { id: '4', label: '3000', type: 'flowers', flowersAmount: 3000, weight: 15, rarity: 'uncommon' },
+      { id: '5', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, weight: 25, rarity: 'common' },
+      { id: '6', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, weight: 8, rarity: 'rare' },
+      { id: '7', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, weight: 20, rarity: 'uncommon' },
+      { id: '8', label: '1000', type: 'flowers', flowersAmount: 1000, weight: 22, rarity: 'common' },
+      { id: '9', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, weight: 25, rarity: 'common' },
+      { id: '10', label: '5000', type: 'flowers', flowersAmount: 5000, weight: 10, rarity: 'rare' },
+      { id: '11', label: 'Abeille', type: 'bee', beeType: 'worker', beeCount: 1, weight: 20, rarity: 'uncommon' },
+      { id: '12', label: 'Royal', type: 'bee', beeType: 'royal', beeCount: 1, weight: 5, rarity: 'epic' },
+      { id: '13', label: 'Bébé', type: 'bee', beeType: 'baby', beeCount: 1, weight: 25, rarity: 'common' },
+      { id: '14', label: '10000', type: 'flowers', flowersAmount: 10000, weight: 3, rarity: 'epic' },
+      { id: '15', label: 'Elite', type: 'bee', beeType: 'elite', beeCount: 1, weight: 8, rarity: 'rare' },
+      { id: '16', label: 'Reine', type: 'bee', beeType: 'queen', beeCount: 1, weight: 1, rarity: 'legendary' }
+    ];
+
+    // Server-side weighted random selection
+    const totalWeight = PRIZES.reduce((sum, prize) => sum + prize.weight, 0);
+    let random = Math.random() * totalWeight;
+    let prizeIndex = 0;
+
+    for (let i = 0; i < PRIZES.length; i++) {
+      random -= PRIZES[i].weight;
+      if (random <= 0) {
+        prizeIndex = i;
+        break;
+      }
+    }
+
+    const prize = PRIZES[prizeIndex];
+
+    // Deduct ticket
+    gameState.tickets -= 1;
+
+    // Award prize
+    if (prize.type === 'bee' && prize.beeType && prize.beeCount) {
+      const currentBeeCount = gameState.bees.get(prize.beeType) || 0;
+      gameState.bees.set(prize.beeType, currentBeeCount + prize.beeCount);
+    } else if (prize.type === 'flowers' && prize.flowersAmount) {
+      gameState.flowers += prize.flowersAmount;
+    }
+
+    gameState.lastUpdated = new Date();
+    await gameState.save();
+
+    res.json({
+      success: true,
+      message: 'Roulette spin successful',
+      prize: {
+        index: prizeIndex,
+        id: prize.id,
+        label: prize.label,
+        type: prize.type,
+        beeType: prize.beeType,
+        beeCount: prize.beeCount,
+        flowersAmount: prize.flowersAmount,
+        rarity: prize.rarity
+      },
+      gameState: {
+        userId: gameState.userId.toString(),
+        honey: gameState.honey,
+        flowers: gameState.flowers,
+        diamonds: gameState.diamonds,
+        tickets: gameState.tickets,
+        bvrCoins: gameState.bvrCoins,
+        bees: Object.fromEntries(gameState.bees),
+        alveoles: Object.fromEntries(gameState.alveoles),
+        invitedFriends: gameState.invitedFriends,
+        claimedMissions: gameState.claimedMissions,
+        referrals: gameState.referrals,
+        totalReferralEarnings: gameState.totalReferralEarnings,
+        hasPendingFunds: gameState.hasPendingFunds,
+        transactions: gameState.transactions,
+        diamondsThisYear: gameState.diamondsThisYear,
+        yearStartDate: gameState.yearStartDate
+      }
+    });
+  } catch (error) {
+    console.error('Spin roulette error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error spinning roulette',
+      error: error.message
+    });
+  }
+});
+
 // @route   POST /api/game/:userId/collect-honey
 // @desc    Collect honey (placeholder)
 // @access  Public

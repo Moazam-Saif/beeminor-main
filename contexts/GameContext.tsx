@@ -681,6 +681,44 @@ export const [GameProvider, useGame] = createContextHook(() => {
     return false;
   }, [tickets]);
 
+  const spinRoulette = useCallback(async () => {
+    // Optimistic check - validate locally first
+    if (tickets <= 0) {
+      return { success: false, message: 'No tickets available' };
+    }
+
+    // If user is authenticated, use backend for prize selection (prevents cheating)
+    if (currentUserId) {
+      try {
+        const response = await gameAPI.spinRoulette(currentUserId);
+        if (response.success && response.gameState && response.prize) {
+          // Update state with backend response
+          setTickets(response.gameState.tickets);
+          setFlowers(response.gameState.flowers);
+          setBees(response.gameState.bees);
+          
+          return { 
+            success: true, 
+            prize: response.prize,
+            prizeIndex: response.prize.index
+          };
+        }
+        return { success: false, message: response.message || 'Spin failed' };
+      } catch (error) {
+        console.error('Failed to spin roulette from backend:', error);
+        return { success: false, message: 'Network error' };
+      }
+    }
+
+    // Fallback: local-only spin (for unauthenticated users - still use ticket)
+    setTickets((current) => current - 1);
+    return { 
+      success: true, 
+      message: 'Spin completed (local mode)',
+      prizeIndex: 0 // Default fallback prize
+    };
+  }, [tickets, currentUserId]);
+
   const addBees = useCallback((beeTypeId: string, count: number) => {
     const newBees = {
       ...bees,
@@ -994,6 +1032,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
     buyBee,
     buyFlowers,
     useTicket,
+    spinRoulette,
     addBees,
     addFlowers,
     addTickets,

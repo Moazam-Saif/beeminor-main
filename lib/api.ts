@@ -276,6 +276,43 @@ export const gameAPI = {
       body: JSON.stringify({ level }),
     });
   },
+
+  spinRoulette: async (userId: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      prize: {
+        index: number;
+        id: string;
+        label: string;
+        type: 'bee' | 'flowers';
+        beeType?: string;
+        beeCount?: number;
+        flowersAmount?: number;
+        rarity: string;
+      };
+      gameState: {
+        userId: string;
+        honey: number;
+        flowers: number;
+        diamonds: number;
+        tickets: number;
+        bvrCoins: number;
+        bees: Record<string, number>;
+        alveoles: Record<number, boolean>;
+        invitedFriends: number;
+        claimedMissions: number[];
+        referrals: any[];
+        totalReferralEarnings: number;
+        hasPendingFunds: boolean;
+        transactions: any[];
+        diamondsThisYear: number;
+        yearStartDate: string;
+      };
+    }>(`/api/game/${userId}/spin-roulette`, {
+      method: 'POST',
+    });
+  },
 };
 
 // Leaderboard API
