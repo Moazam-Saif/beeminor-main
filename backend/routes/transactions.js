@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Transaction = require('../models/Transaction');
+const GameState = require('../models/GameState');
 
 // @route   GET /api/transactions/:userId
 // @desc    Get transactions for user
@@ -30,6 +31,81 @@ router.get('/:userId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching transactions',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/transactions/withdraw
+// @desc    Create withdrawal request and deduct flowers
+// @access  Public (should be protected in production)
+router.post('/withdraw', async (req, res) => {
+  try {
+    const { userId, amount, currency, address, cryptoAddress } = req.body;
+
+    if (!userId || !amount || !currency || (!address && !cryptoAddress)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields (userId, amount, currency, and address/cryptoAddress)'
+      });
+    }
+
+    // Get game state to check balance and deduct flowers
+    const gameState = await GameState.findOne({ userId });
+    if (!gameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    // Check if user has enough flowers
+    if (gameState.flowers < amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient flowers',
+        current: gameState.flowers,
+        required: amount
+      });
+    }
+
+    // Deduct flowers from game state
+    gameState.flowers -= amount;
+    await gameState.save();
+
+    // Create withdrawal transaction
+    const transaction = new Transaction({
+      userId,
+      type: 'withdrawal',
+      amount,
+      currency,
+      address: address || null,
+      cryptoAddress: cryptoAddress || null,
+      status: 'pending'
+    });
+
+    await transaction.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Withdrawal request created successfully',
+      transaction: {
+        id: transaction._id.toString(),
+        type: transaction.type,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        status: transaction.status,
+        address: transaction.address,
+        cryptoAddress: transaction.cryptoAddress,
+        createdAt: transaction.createdAt
+      },
+      remainingFlowers: gameState.flowers
+    });
+  } catch (error) {
+    console.error('Withdrawal request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating withdrawal request',
       error: error.message
     });
   }
@@ -101,15 +177,7 @@ router.put('/:id/status', async (req, res) => {
       });
     }
 
-    const transaction = await Transaction.findByIdAndUpdate(
-      req.params.id,
-      {
-        status,
-        adminNotes: adminNotes || null,
-        processedAt: status === 'completed' ? new Date() : null
-      },
-      { new: true }
-    );
+    const transaction = await Transaction.findById(req.params.id);
 
     if (!transaction) {
       return res.status(404).json({
@@ -117,6 +185,22 @@ router.put('/:id/status', async (req, res) => {
         message: 'Transaction not found'
       });
     }
+
+    // If withdrawal is being cancelled/failed, refund the flowers
+    if (transaction.type === 'withdrawal' && 
+        transaction.status === 'pending' && 
+        (status === 'cancelled' || status === 'failed')) {
+      const gameState = await GameState.findOne({ userId: transaction.userId });
+      if (gameState) {
+        gameState.flowers += transaction.amount;
+        await gameState.save();
+      }
+    }
+
+    transaction.status = status;
+    transaction.adminNotes = adminNotes || null;
+    transaction.processedAt = status === 'completed' ? new Date() : null;
+    await transaction.save();
 
     res.json({
       success: true,

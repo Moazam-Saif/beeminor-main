@@ -494,6 +494,57 @@ export const transactionsAPI = {
       body: JSON.stringify(transaction),
     });
   },
+
+  createWithdrawal: async (withdrawal: {
+    userId: string;
+    amount: number;
+    currency: string;
+    address?: string;
+    cryptoAddress?: string;
+  }) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      transaction: any;
+      remainingFlowers: number;
+    }>('/api/transactions/withdraw', {
+      method: 'POST',
+      body: JSON.stringify(withdrawal),
+    });
+  },
+
+  updateTransactionStatus: async (
+    transactionId: string,
+    status: string,
+    adminNotes?: string
+  ) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      transaction: any;
+    }>(`/api/transactions/${transactionId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, adminNotes }),
+    });
+  },
+
+  getPendingTransactions: async () => {
+    return apiRequest<{
+      success: boolean;
+      transactions: Array<{
+        id: string;
+        userId: string;
+        userEmail: string;
+        type: string;
+        amount: number;
+        currency: string;
+        address?: string;
+        cryptoAddress?: string;
+        notes?: string;
+        createdAt: string;
+      }>;
+    }>('/api/transactions/pending/all');
+  },
 };
 
 // Referrals API
