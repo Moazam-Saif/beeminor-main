@@ -49,9 +49,13 @@ export default function AlveoleScreen() {
         { text: t.cancel, style: 'cancel' },
         {
           text: t.sellHoney,
-          onPress: () => {
-            sellHoney(amount);
-            Alert.alert(t.sold, t.transactionSuccess);
+          onPress: async () => {
+            const success = await sellHoney(amount);
+            if (success) {
+              Alert.alert(t.sold, t.transactionSuccess);
+            } else {
+              Alert.alert(t.error, t.transactionFailed || 'Transaction failed');
+            }
           },
         },
       ]
