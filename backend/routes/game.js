@@ -1038,5 +1038,92 @@ router.post('/:userId/set-pending-funds', async (req, res) => {
   }
 });
 
+// @route   POST /api/game/:userId/admin/add-resources
+// @desc    Admin: Add resources to user
+// @access  Admin only (should be protected in production)
+router.post('/:userId/admin/add-resources', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { flowers, tickets, diamonds, honey, bvrCoins } = req.body;
+
+    const gameState = await GameState.findOne({ userId });
+    if (!gameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    // Add resources
+    if (flowers) gameState.flowers += flowers;
+    if (tickets) gameState.tickets += tickets;
+    if (diamonds) gameState.diamonds += diamonds;
+    if (honey) gameState.honey += honey;
+    if (bvrCoins) gameState.bvrCoins += bvrCoins;
+
+    await gameState.save();
+
+    res.json({
+      success: true,
+      message: 'Resources added successfully',
+      gameState: {
+        flowers: gameState.flowers,
+        tickets: gameState.tickets,
+        diamonds: gameState.diamonds,
+        honey: gameState.honey,
+        bvrCoins: gameState.bvrCoins
+      }
+    });
+  } catch (error) {
+    console.error('Admin add resources error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error adding resources',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/game/:userId/admin/set-invited-friends
+// @desc    Admin: Set invited friends count
+// @access  Admin only (should be protected in production)
+router.post('/:userId/admin/set-invited-friends', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { count } = req.body;
+
+    if (count === undefined || count < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid count'
+      });
+    }
+
+    const gameState = await GameState.findOne({ userId });
+    if (!gameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    gameState.invitedFriends = count;
+    await gameState.save();
+
+    res.json({
+      success: true,
+      message: 'Invited friends count updated',
+      invitedFriends: gameState.invitedFriends
+    });
+  } catch (error) {
+    console.error('Admin set invited friends error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error setting invited friends',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 

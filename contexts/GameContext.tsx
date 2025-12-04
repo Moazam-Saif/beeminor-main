@@ -188,17 +188,6 @@ export const [GameProvider, useGame] = createContextHook(() => {
     }
   }, [currentUserId]);
 
-  // Periodic sync: refresh from backend every 30 seconds to ensure cross-device sync
-  useEffect(() => {
-    if (!currentUserId) return;
-
-    const syncInterval = setInterval(() => {
-      syncGameStateFromBackend(currentUserId);
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(syncInterval);
-  }, [currentUserId, syncGameStateFromBackend]);
-
   const loadUserId = async () => {
     try {
       // Load user ID from AsyncStorage (set when user logs in)
@@ -210,18 +199,6 @@ export const [GameProvider, useGame] = createContextHook(() => {
       console.error('Failed to load user ID:', error);
     }
   };
-
-  // Function to set user ID (called when user logs in)
-  const setUserId = useCallback(async (userId: string | null) => {
-    setCurrentUserId(userId);
-    if (userId) {
-      await AsyncStorage.setItem(USER_ID_KEY, userId);
-      // Load game state from backend when user is set
-      await syncGameStateFromBackend(userId);
-    } else {
-      await AsyncStorage.removeItem(USER_ID_KEY);
-    }
-  }, []);
 
   const syncGameStateFromBackend = useCallback(async (userId: string) => {
     try {
@@ -255,6 +232,29 @@ export const [GameProvider, useGame] = createContextHook(() => {
       console.log('Falling back to local storage...');
     }
   }, []);
+
+  // Function to set user ID (called when user logs in)
+  const setUserId = useCallback(async (userId: string | null) => {
+    setCurrentUserId(userId);
+    if (userId) {
+      await AsyncStorage.setItem(USER_ID_KEY, userId);
+      // Load game state from backend when user is set
+      await syncGameStateFromBackend(userId);
+    } else {
+      await AsyncStorage.removeItem(USER_ID_KEY);
+    }
+  }, [syncGameStateFromBackend]);
+
+  // Periodic sync: refresh from backend every 30 seconds to ensure cross-device sync
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const syncInterval = setInterval(() => {
+      syncGameStateFromBackend(currentUserId);
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(syncInterval);
+  }, [currentUserId, syncGameStateFromBackend]);
 
   const initializeMockLeaderboard = () => {
     const mockUsers: LeaderboardUser[] = [];
@@ -972,7 +972,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
     setHasPendingFunds(false);
     setTransactions([]);
     setDiamondsThisYear(0);
-    setLeaderboard([]);
+    setAllUsersLeaderboard([]);
     setIsLoaded(false);
   }, []);
 
@@ -1166,8 +1166,31 @@ export const [GameProvider, useGame] = createContextHook(() => {
     }
   }, [currentUserId, syncGameStateFromBackend]);
 
-  const getPendingTransactions = useCallback(() => {
-    return transactions.filter((txn) => txn.status === 'pending');
+  const getPendingTransactions = useCallback(async () => {
+    try {
+      // Fetch from backend instead of local state
+      const response = await transactionsAPI.getPendingTransactions();
+      if (response.success) {
+        // Map backend transactions to frontend format
+        return response.transactions.map(t => ({
+          id: t.id,
+          userId: t.userId,
+          userEmail: t.userEmail,
+          type: t.type as 'withdrawal_diamond' | 'withdrawal_bvr' | 'deposit_crypto',
+          amount: t.amount,
+          network: t.currency || 'USD',
+          walletAddress: t.cryptoAddress || t.address || '',
+          status: 'pending' as TransactionStatus,
+          createdAt: t.createdAt,
+          usdAmount: t.amount
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to fetch pending transactions:', error);
+      // Fallback to local state
+      return transactions.filter((txn) => txn.status === 'pending');
+    }
   }, [transactions]);
 
   const getLeaderboard = useCallback(() => {

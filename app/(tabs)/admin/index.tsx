@@ -88,7 +88,25 @@ function AdminDashboard({ logout }: { logout: () => Promise<void> }) {
   const admin = useAdmin();
   const { currentLanguage, changeLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<'stats' | 'resources' | 'config' | 'transactions' | 'messages'>('stats');
-  const pendingTransactions = game.getPendingTransactions();
+  const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
+
+  // Load pending transactions from backend
+  useEffect(() => {
+    const loadTransactions = async () => {
+      const txns = await game.getPendingTransactions();
+      setPendingTransactions(txns);
+    };
+    loadTransactions();
+    
+    // Refresh every 10 seconds when on transactions tab
+    const interval = setInterval(() => {
+      if (activeTab === 'transactions') {
+        loadTransactions();
+      }
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [activeTab, game]);
 
   const handleLogout = async () => {
     await logout();
@@ -190,9 +208,30 @@ function AdminDashboard({ logout }: { logout: () => Promise<void> }) {
 }
 
 function StatsTab({ game }: { game: ReturnType<typeof useGame> }) {
+  const [globalStats, setGlobalStats] = useState<any>(null);
   const totalProduction = game.getTotalProduction();
   const totalBees = game.getTotalBees();
   const maxCapacity = game.getMaxCapacity();
+
+  // Load global stats from backend
+  useEffect(() => {
+    const loadGlobalStats = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/leaderboard/stats');
+        const data = await response.json();
+        if (data.success) {
+          setGlobalStats(data.stats);
+        }
+      } catch (error) {
+        console.error('Failed to load global stats:', error);
+      }
+    };
+    loadGlobalStats();
+    
+    // Refresh every 10 seconds
+    const interval = setInterval(loadGlobalStats, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const totalAlveolesPurchased = useMemo(() => {
     return Object.values(game.alveoles).filter(isUnlocked => isUnlocked).length - 1;
@@ -219,7 +258,48 @@ function StatsTab({ game }: { game: ReturnType<typeof useGame> }) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>📊 Statistiques Globales</Text>
+      <Text style={styles.sectionTitle}>🌍 Statistiques Globales (Tous les Utilisateurs)</Text>
+      
+      {globalStats && (
+        <>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>👥 Total Utilisateurs</Text>
+            <Text style={styles.statValue}>{globalStats.totalUsers.toLocaleString('fr-FR')}</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>💎 Total Diamants</Text>
+            <Text style={styles.statValue}>{globalStats.totalDiamonds.toLocaleString('fr-FR')}</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>🍯 Total Miel</Text>
+            <Text style={styles.statValue}>{globalStats.totalHoney.toLocaleString('fr-FR')}</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>🌸 Total Fleurs</Text>
+            <Text style={styles.statValue}>{globalStats.totalFlowers.toLocaleString('fr-FR')}</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>🐝 Total Abeilles</Text>
+            <Text style={styles.statValue}>{globalStats.totalBees.toLocaleString('fr-FR')}</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>👨‍👩‍👧‍👦 Total Parrainages</Text>
+            <Text style={styles.statValue}>{globalStats.totalReferrals.toLocaleString('fr-FR')}</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>💰 Total Gains Parrainage</Text>
+            <Text style={styles.statValue}>{globalStats.totalReferralEarnings.toLocaleString('fr-FR')} fleurs</Text>
+          </View>
+        </>
+      )}
+
+      <Text style={styles.sectionTitle}>📊 Statistiques Utilisateur Actuel</Text>
       
       <View style={styles.statCard}>
         <Text style={styles.statLabel}>Production totale</Text>
@@ -249,7 +329,7 @@ function StatsTab({ game }: { game: ReturnType<typeof useGame> }) {
         <Text style={styles.statValue}>{totalAlveolesPurchased}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>👥 Suivi Global</Text>
+      <Text style={styles.sectionTitle}>👥 Suivi Utilisateur</Text>
       
       <View style={styles.userStatsCard}>
         <View style={styles.userStatsRow}>
@@ -351,7 +431,7 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
     return { totalDeposited, totalWithdrawn };
   }, [game.transactions]);
 
-  const handleAddFlowers = () => {
+  const handleAddFlowers = async () => {
     if (!selectedUserId) {
       if (Platform.OS === 'web') {
         alert('Veuillez sélectionner un utilisateur');
@@ -363,17 +443,30 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
 
     const amount = parseInt(flowersInput);
     if (!isNaN(amount) && amount > 0) {
-      game.addFlowers(amount);
-      setFlowersInput('');
-      if (Platform.OS === 'web') {
-        alert(`${amount} fleurs ajoutées à l'utilisateur ${selectedUser?.email}!`);
-      } else {
-        Alert.alert('Succès', `${amount} fleurs ajoutées à l'utilisateur ${selectedUser?.email}!`);
+      try {
+        const response = await fetch(`http://localhost:3001/api/game/${selectedUserId}/admin/add-resources`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ flowers: amount })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          setFlowersInput('');
+          if (Platform.OS === 'web') {
+            alert(`${amount} fleurs ajoutées à l'utilisateur ${selectedUser?.email}!`);
+          } else {
+            Alert.alert('Succès', `${amount} fleurs ajoutées à l'utilisateur ${selectedUser?.email}!`);
+          }
+        }
+      } catch (error) {
+        console.error('Error adding flowers:', error);
+        alert('Erreur lors de l\'ajout des fleurs');
       }
     }
   };
 
-  const handleRemoveFlowers = () => {
+  const handleRemoveFlowers = async () => {
     if (!selectedUserId) {
       if (Platform.OS === 'web') {
         alert('Veuillez sélectionner un utilisateur');
@@ -385,17 +478,30 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
 
     const amount = parseInt(removeFlowersInput);
     if (!isNaN(amount) && amount > 0) {
-      game.removeFlowers(amount);
-      setRemoveFlowersInput('');
-      if (Platform.OS === 'web') {
-        alert(`${amount} fleurs retirées à l'utilisateur ${selectedUser?.email}!`);
-      } else {
-        Alert.alert('Succès', `${amount} fleurs retirées à l'utilisateur ${selectedUser?.email}!`);
+      try {
+        const response = await fetch(`http://localhost:3001/api/game/${selectedUserId}/admin/add-resources`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ flowers: -amount })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          setRemoveFlowersInput('');
+          if (Platform.OS === 'web') {
+            alert(`${amount} fleurs retirées à l'utilisateur ${selectedUser?.email}!`);
+          } else {
+            Alert.alert('Succès', `${amount} fleurs retirées à l'utilisateur ${selectedUser?.email}!`);
+          }
+        }
+      } catch (error) {
+        console.error('Error removing flowers:', error);
+        alert('Erreur lors du retrait des fleurs');
       }
     }
   };
 
-  const handleAddTickets = () => {
+  const handleAddTickets = async () => {
     if (!selectedUserId) {
       if (Platform.OS === 'web') {
         alert('Veuillez sélectionner un utilisateur');
@@ -407,12 +513,25 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
 
     const amount = parseInt(ticketsInput);
     if (!isNaN(amount) && amount > 0) {
-      game.addTickets(amount);
-      setTicketsInput('');
-      if (Platform.OS === 'web') {
-        alert(`${amount} tickets roulette ajoutés à l'utilisateur ${selectedUser?.email}!`);
-      } else {
-        Alert.alert('Succès', `${amount} tickets roulette ajoutés à l'utilisateur ${selectedUser?.email}!`);
+      try {
+        const response = await fetch(`http://localhost:3001/api/game/${selectedUserId}/admin/add-resources`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tickets: amount })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          setTicketsInput('');
+          if (Platform.OS === 'web') {
+            alert(`${amount} tickets roulette ajoutés à l'utilisateur ${selectedUser?.email}!`);
+          } else {
+            Alert.alert('Succès', `${amount} tickets roulette ajoutés à l'utilisateur ${selectedUser?.email}!`);
+          }
+        }
+      } catch (error) {
+        console.error('Error adding tickets:', error);
+        alert('Erreur lors de l\'ajout des tickets');
       }
     }
   };
@@ -576,8 +695,46 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
 
 
 function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
-  const pendingTransactions = game.transactions.filter((txn) => txn.status === 'pending');
-  const processedTransactions = game.transactions.filter((txn) => txn.status !== 'pending');
+  const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
+  const [processedTransactions, setProcessedTransactions] = useState<any[]>([]);
+
+  // Load transactions from backend
+  useEffect(() => {
+    const loadTransactions = async () => {
+      // Load pending transactions
+      const pending = await game.getPendingTransactions();
+      setPendingTransactions(pending);
+      
+      // Load processed transaction history from backend
+      try {
+        const response = await fetch('http://localhost:3001/api/transactions/history/all');
+        const data = await response.json();
+        if (data.success) {
+          setProcessedTransactions(data.transactions.map((txn: any) => ({
+            id: txn.id,
+            userId: txn.userId,
+            userEmail: txn.userEmail,
+            type: txn.type,
+            amount: txn.amount,
+            currency: txn.currency,
+            status: txn.status,
+            address: txn.address || txn.cryptoAddress,
+            notes: txn.notes,
+            processedAt: txn.processedAt,
+            createdAt: txn.createdAt,
+            updatedAt: txn.updatedAt
+          })));
+        }
+      } catch (error) {
+        console.error('Error loading transaction history:', error);
+      }
+    };
+    loadTransactions();
+    
+    // Refresh every 5 seconds
+    const interval = setInterval(loadTransactions, 5000);
+    return () => clearInterval(interval);
+  }, [game]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -618,12 +775,15 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
     }
   };
 
-  const handleApprove = (transactionId: string) => {
+  const handleApprove = async (transactionId: string) => {
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('Êtes-vous sûr de vouloir approuver cette transaction?');
       if (confirmed) {
-        game.approveTransaction(transactionId);
+        await game.approveTransaction(transactionId);
         alert('Transaction approuvée!');
+        // Refresh transactions list
+        const txns = await game.getPendingTransactions();
+        setPendingTransactions(txns);
       }
     } else {
       Alert.alert(
@@ -633,9 +793,12 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
           { text: 'Annuler', style: 'cancel' },
           {
             text: 'Approuver',
-            onPress: () => {
-              game.approveTransaction(transactionId);
+            onPress: async () => {
+              await game.approveTransaction(transactionId);
               Alert.alert('Succès', 'Transaction approuvée!');
+              // Refresh transactions list
+              const txns = await game.getPendingTransactions();
+              setPendingTransactions(txns);
             },
           },
         ]
@@ -643,12 +806,15 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
     }
   };
 
-  const handleReject = (transactionId: string) => {
+  const handleReject = async (transactionId: string) => {
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('Êtes-vous sûr de vouloir rejeter cette transaction?');
       if (confirmed) {
-        game.rejectTransaction(transactionId);
-        alert('Transaction rejetée!');
+        await game.rejectTransaction(transactionId);
+        alert('Transaction rejetée et fleurs remboursées!');
+        // Refresh transactions list
+        const txns = await game.getPendingTransactions();
+        setPendingTransactions(txns);
       }
     } else {
       Alert.alert(
@@ -659,9 +825,12 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
           {
             text: 'Rejeter',
             style: 'destructive',
-            onPress: () => {
-              game.rejectTransaction(transactionId);
-              Alert.alert('Info', 'Transaction rejetée!');
+            onPress: async () => {
+              await game.rejectTransaction(transactionId);
+              Alert.alert('Info', 'Transaction rejetée et fleurs remboursées!');
+              // Refresh transactions list
+              const txns = await game.getPendingTransactions();
+              setPendingTransactions(txns);
             },
           },
         ]
@@ -791,26 +960,21 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
             <View style={styles.transactionDetail}>
               <Text style={styles.transactionLabel}>Montant:</Text>
               <Text style={styles.transactionValue}>
-                {txn.type === 'deposit_crypto' && txn.flowersAmount
-                  ? `${txn.flowersAmount.toLocaleString()} fleurs`
-                  : txn.amount.toLocaleString()}
+                {txn.amount.toLocaleString()} {txn.currency || 'fleurs'}
               </Text>
             </View>
 
-            {txn.type === 'deposit_crypto' && txn.usdAmount && (
+            {txn.address && (
               <View style={styles.transactionDetail}>
-                <Text style={styles.transactionLabel}>USD déclaré:</Text>
-                <Text style={styles.transactionValue}>${txn.usdAmount.toFixed(2)}</Text>
+                <Text style={styles.transactionLabel}>Adresse:</Text>
+                <Text style={styles.transactionValueSmall} numberOfLines={1}>
+                  {txn.address}
+                </Text>
               </View>
             )}
 
             <View style={styles.transactionDetail}>
-              <Text style={styles.transactionLabel}>Réseau:</Text>
-              <Text style={styles.transactionValue}>{txn.network}</Text>
-            </View>
-
-            <View style={styles.transactionDetail}>
-              <Text style={styles.transactionLabel}>Date:</Text>
+              <Text style={styles.transactionLabel}>Date création:</Text>
               <Text style={styles.transactionValue}>
                 {new Date(txn.createdAt).toLocaleString('fr-FR')}
               </Text>
@@ -823,18 +987,29 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
               </Text>
             </View>
 
-            <View style={styles.transactionDetail}>
-              <Text style={styles.transactionLabel}>Email:</Text>
-              <Text style={styles.transactionValueSmall} numberOfLines={1}>
-                {txn.userEmail}
-              </Text>
-            </View>
+            {txn.userEmail && (
+              <View style={styles.transactionDetail}>
+                <Text style={styles.transactionLabel}>Email:</Text>
+                <Text style={styles.transactionValueSmall} numberOfLines={1}>
+                  {txn.userEmail}
+                </Text>
+              </View>
+            )}
 
             {txn.processedAt && (
               <View style={styles.transactionDetail}>
                 <Text style={styles.transactionLabel}>Traitée le:</Text>
                 <Text style={styles.transactionValue}>
                   {new Date(txn.processedAt).toLocaleString('fr-FR')}
+                </Text>
+              </View>
+            )}
+
+            {txn.notes && (
+              <View style={styles.transactionDetail}>
+                <Text style={styles.transactionLabel}>Notes:</Text>
+                <Text style={styles.transactionValueSmall}>
+                  {txn.notes}
                 </Text>
               </View>
             )}

@@ -199,7 +199,10 @@ router.put('/:id/status', async (req, res) => {
 
     transaction.status = status;
     transaction.adminNotes = adminNotes || null;
-    transaction.processedAt = status === 'completed' ? new Date() : null;
+    // Set processedAt when transaction is completed or cancelled
+    if (status === 'completed' || status === 'cancelled') {
+      transaction.processedAt = new Date();
+    }
     await transaction.save();
 
     res.json({
@@ -251,6 +254,46 @@ router.get('/pending/all', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching pending transactions',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/transactions/history/all
+// @desc    Get all processed transactions (completed/cancelled) (admin)
+// @access  Public (should be protected and admin-only in production)
+router.get('/history/all', async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ 
+      status: { $in: ['completed', 'cancelled'] } 
+    })
+      .sort({ updatedAt: -1 })
+      .populate('userId', 'email referralCode')
+      .limit(100);
+
+    res.json({
+      success: true,
+      transactions: transactions.map(t => ({
+        id: t._id.toString(),
+        userId: t.userId ? t.userId._id.toString() : 'Unknown',
+        userEmail: t.userId ? t.userId.email : 'Unknown',
+        type: t.type,
+        amount: t.amount,
+        currency: t.currency,
+        status: t.status,
+        address: t.address,
+        cryptoAddress: t.cryptoAddress,
+        notes: t.notes,
+        processedAt: t.processedAt,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt
+      }))
+    });
+  } catch (error) {
+    console.error('Get transaction history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching transaction history',
       error: error.message
     });
   }
