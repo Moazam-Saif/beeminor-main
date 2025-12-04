@@ -605,7 +605,7 @@ router.post('/:userId/claim-mission', async (req, res) => {
 // @access  Public (should be removed in production)
 router.post('/:userId/add-test-resources', async (req, res) => {
   try {
-    const { honey, flowers, tickets, diamonds, bvrCoins } = req.body;
+    const { honey, flowers, tickets, diamonds, bvrCoins, invitedFriends } = req.body;
 
     // Get current game state
     let gameState = await GameState.findOne({ userId: req.params.userId });
@@ -622,6 +622,7 @@ router.post('/:userId/add-test-resources', async (req, res) => {
     if (tickets) gameState.tickets += tickets;
     if (diamonds) gameState.diamonds += diamonds;
     if (bvrCoins) gameState.bvrCoins += bvrCoins;
+    if (typeof invitedFriends === 'number') gameState.invitedFriends = invitedFriends;
     
     gameState.lastUpdated = new Date();
     await gameState.save();
