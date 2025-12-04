@@ -188,6 +188,17 @@ export const [GameProvider, useGame] = createContextHook(() => {
     }
   }, [currentUserId]);
 
+  // Periodic sync: refresh from backend every 30 seconds to ensure cross-device sync
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const syncInterval = setInterval(() => {
+      syncGameStateFromBackend(currentUserId);
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(syncInterval);
+  }, [currentUserId, syncGameStateFromBackend]);
+
   const loadUserId = async () => {
     try {
       // Load user ID from AsyncStorage (set when user logs in)
@@ -1105,6 +1116,13 @@ export const [GameProvider, useGame] = createContextHook(() => {
     return userIndex !== -1 ? userIndex + 1 : null;
   }, [allUsersLeaderboard, referralCode]);
 
+  // Manual refresh function for pull-to-refresh
+  const refreshGameState = useCallback(async () => {
+    if (currentUserId) {
+      await syncGameStateFromBackend(currentUserId);
+    }
+  }, [currentUserId, syncGameStateFromBackend]);
+
   return useMemo(() => ({
     honey,
     flowers,
@@ -1154,6 +1172,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
     getCurrentUserRank,
     updateLeaderboard,
     setUserId, // Expose setUserId to connect with AuthContext
+    refreshGameState, // Manual refresh for cross-device sync
   }), [
     honey,
     flowers,
@@ -1200,5 +1219,6 @@ export const [GameProvider, useGame] = createContextHook(() => {
     updateLeaderboard,
     setUserId,
     resetGameState, // Add resetGameState for logout functionality
+    refreshGameState,
   ]);
 });
