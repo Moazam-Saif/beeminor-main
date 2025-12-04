@@ -14,8 +14,8 @@ export default function ShopScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const handleBuyBee = (beeTypeId: string) => {
-    const success = buyBee(beeTypeId);
+  const handleBuyBee = async (beeTypeId: string) => {
+    const success = await buyBee(beeTypeId);
     if (success) {
       console.log(`Purchased bee: ${beeTypeId}`);
     } else {

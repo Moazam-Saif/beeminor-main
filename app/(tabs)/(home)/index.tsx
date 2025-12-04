@@ -133,7 +133,7 @@ export default function HomeScreen() {
             </View>
             <TouchableOpacity
               style={styles.sellButton}
-              onPress={() => {
+              onPress={async () => {
                 if (honey < 300) {
                   window.alert('Error: You need at least 300 honey to sell!');
                   return;
@@ -141,7 +141,7 @@ export default function HomeScreen() {
                 
                 const confirmed = window.confirm(`Sell ${Math.floor(honey)} honey for diamonds and flowers?`);
                 if (confirmed) {
-                  const success = sellHoney(Math.floor(honey));
+                  const success = await sellHoney(Math.floor(honey));
                   if (success) {
                     window.alert('Success: Honey sold successfully!');
                   } else {

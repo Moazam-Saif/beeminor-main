@@ -182,6 +182,67 @@ export const gameAPI = {
       body: JSON.stringify(updates),
     });
   },
+
+  buyBee: async (userId: string, beeTypeId: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      gameState: {
+        userId: string;
+        honey: number;
+        flowers: number;
+        diamonds: number;
+        tickets: number;
+        bvrCoins: number;
+        bees: Record<string, number>;
+        alveoles: Record<number, boolean>;
+        invitedFriends: number;
+        claimedMissions: number[];
+        referrals: any[];
+        totalReferralEarnings: number;
+        hasPendingFunds: boolean;
+        transactions: any[];
+        diamondsThisYear: number;
+        yearStartDate: string;
+      };
+    }>(`/api/game/${userId}/buy-bee`, {
+      method: 'POST',
+      body: JSON.stringify({ beeTypeId }),
+    });
+  },
+
+  sellHoney: async (userId: string, amount: number) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      rewards: {
+        diamonds: number;
+        flowers: number;
+        bvr: number;
+      };
+      gameState: {
+        userId: string;
+        honey: number;
+        flowers: number;
+        diamonds: number;
+        tickets: number;
+        bvrCoins: number;
+        bees: Record<string, number>;
+        alveoles: Record<number, boolean>;
+        invitedFriends: number;
+        claimedMissions: number[];
+        referrals: any[];
+        totalReferralEarnings: number;
+        hasPendingFunds: boolean;
+        transactions: any[];
+        diamondsThisYear: number;
+        yearStartDate: string;
+      };
+    }>(`/api/game/${userId}/sell-honey`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  },
 };
 
 // Leaderboard API

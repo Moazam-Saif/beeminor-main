@@ -622,22 +622,42 @@ export const [GameProvider, useGame] = createContextHook(() => {
     saveGameState,
   ]);
 
-  const buyBee = useCallback((beeTypeId: string) => {
+  const buyBee = useCallback(async (beeTypeId: string) => {
     const beeType = BEE_TYPES.find((b) => b.id === beeTypeId);
     if (!beeType) return false;
 
-    if (flowers >= beeType.cost) {
-      const newFlowers = flowers - beeType.cost;
-      const newBees = {
-        ...bees,
-        [beeTypeId]: (bees[beeTypeId] || 0) + 1,
-      };
-      setFlowers(newFlowers);
-      setBees(newBees);
-      return true;
+    // Optimistic update - check locally first
+    if (flowers < beeType.cost) {
+      return false;
     }
-    return false;
-  }, [flowers, bees]);
+
+    // If user is authenticated, use backend validation
+    if (currentUserId) {
+      try {
+        const response = await gameAPI.buyBee(currentUserId, beeTypeId);
+        if (response.success && response.gameState) {
+          // Update state with backend response
+          setFlowers(response.gameState.flowers);
+          setBees(response.gameState.bees);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('Failed to buy bee from backend:', error);
+        // Fallback to local update if backend fails
+      }
+    }
+
+    // Fallback: local-only update (for offline or unauthenticated users)
+    const newFlowers = flowers - beeType.cost;
+    const newBees = {
+      ...bees,
+      [beeTypeId]: (bees[beeTypeId] || 0) + 1,
+    };
+    setFlowers(newFlowers);
+    setBees(newBees);
+    return true;
+  }, [flowers, bees, currentUserId]);
 
   const buyFlowers = useCallback((amount: number, priceUSD: number) => {
     if (!hasPendingFunds) {
@@ -725,9 +745,36 @@ export const [GameProvider, useGame] = createContextHook(() => {
     });
   }, []);
 
-  const sellHoney = useCallback((amount: number) => {
+  const sellHoney = useCallback(async (amount: number) => {
+    // Optimistic check - validate locally first
     if (honey < amount) return false;
+    if (amount < 300) return false;
 
+    // If user is authenticated, use backend validation
+    if (currentUserId) {
+      try {
+        const response = await gameAPI.sellHoney(currentUserId, amount);
+        if (response.success && response.gameState) {
+          // Update state with backend response
+          setHoney(response.gameState.honey);
+          setDiamonds(response.gameState.diamonds);
+          setFlowers(response.gameState.flowers);
+          setBvrCoins(response.gameState.bvrCoins);
+          setDiamondsThisYear(response.gameState.diamondsThisYear);
+          
+          // Update leaderboard
+          updateLeaderboard(referralCode, response.gameState.diamondsThisYear);
+          
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('Failed to sell honey from backend:', error);
+        // Fallback to local update if backend fails
+      }
+    }
+
+    // Fallback: local-only update (for offline or unauthenticated users)
     const diamondsEarned = Math.floor(amount / 300);
     const flowersEarned = diamondsEarned;
     const bvrEarned = diamondsEarned * 2;
@@ -741,7 +788,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
     updateLeaderboard(referralCode, diamondsThisYear + diamondsEarned);
 
     return true;
-  }, [honey, referralCode, diamondsThisYear, updateLeaderboard]);
+  }, [honey, referralCode, diamondsThisYear, updateLeaderboard, currentUserId]);
 
   const inviteFriend = useCallback(() => {
     setInvitedFriends((current) => current + 1);
