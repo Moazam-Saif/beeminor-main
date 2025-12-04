@@ -600,6 +600,73 @@ router.post('/:userId/claim-mission', async (req, res) => {
   }
 });
 
+// @route   POST /api/game/:userId/recreate-gamestate
+// @desc    Delete and recreate game state with correct schema (for development only)
+// @access  Public (should be removed in production)
+router.post('/:userId/recreate-gamestate', async (req, res) => {
+  try {
+    // Get current game state values to preserve them
+    const oldGameState = await GameState.findOne({ userId: req.params.userId });
+    
+    if (!oldGameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    // Save important values
+    const savedData = {
+      honey: oldGameState.honey,
+      flowers: oldGameState.flowers,
+      diamonds: oldGameState.diamonds,
+      tickets: oldGameState.tickets,
+      bvrCoins: oldGameState.bvrCoins,
+      bees: oldGameState.bees,
+      alveoles: oldGameState.alveoles,
+      invitedFriends: oldGameState.invitedFriends,
+      claimedMissions: oldGameState.claimedMissions,
+      referrals: oldGameState.referrals,
+      totalReferralEarnings: oldGameState.totalReferralEarnings,
+      hasPendingFunds: oldGameState.hasPendingFunds,
+      diamondsThisYear: oldGameState.diamondsThisYear,
+      yearStartDate: oldGameState.yearStartDate
+    };
+
+    // Delete the old document
+    await GameState.deleteOne({ userId: req.params.userId });
+
+    // Create new document with correct schema
+    const newGameState = new GameState({
+      userId: req.params.userId,
+      ...savedData,
+      transactions: [] // This will now be an array
+    });
+
+    await newGameState.save();
+
+    res.json({
+      success: true,
+      message: 'Game state recreated successfully with correct schema',
+      gameState: {
+        userId: newGameState.userId.toString(),
+        honey: newGameState.honey,
+        flowers: newGameState.flowers,
+        diamonds: newGameState.diamonds,
+        tickets: newGameState.tickets,
+        transactions: newGameState.transactions
+      }
+    });
+  } catch (error) {
+    console.error('Recreate game state error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error recreating game state',
+      error: error.message
+    });
+  }
+});
+
 // @route   POST /api/game/:userId/add-test-resources
 // @desc    Add testing resources (for development only)
 // @access  Public (should be removed in production)
@@ -655,6 +722,317 @@ router.post('/:userId/add-test-resources', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error adding test resources',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/game/:userId/process-referral
+// @desc    Process referral bonus when a user makes their first purchase
+// @access  Public (should be protected in production)
+router.post('/:userId/process-referral', async (req, res) => {
+  try {
+    const { purchaseAmount, purchaseType } = req.body; // flowers spent
+
+    // Get the buyer's user info
+    const buyer = await User.findById(req.params.userId);
+    if (!buyer) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if buyer has a sponsor
+    if (!buyer.sponsorCode) {
+      return res.json({
+        success: true,
+        message: 'No sponsor to reward',
+        bonusAwarded: false
+      });
+    }
+
+    // Find the sponsor
+    const sponsor = await User.findOne({ referralCode: buyer.sponsorCode });
+    if (!sponsor) {
+      return res.json({
+        success: true,
+        message: 'Sponsor not found',
+        bonusAwarded: false
+      });
+    }
+
+    // Check if this is the buyer's first purchase (check if they already have a referral entry)
+    const sponsorGameState = await GameState.findOne({ userId: sponsor._id });
+    const buyerGameState = await GameState.findOne({ userId: buyer._id });
+    
+    if (!sponsorGameState || !buyerGameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    // Check if buyer already has a referral entry (meaning bonus was already given)
+    const existingReferral = sponsorGameState.referrals.find(
+      r => r.email === buyer.email
+    );
+
+    if (existingReferral && existingReferral.earnings > 0) {
+      return res.json({
+        success: true,
+        message: 'Referral bonus already awarded',
+        bonusAwarded: false
+      });
+    }
+
+    // Calculate bonus: 10% of purchase amount in flowers
+    const bonusAmount = Math.floor(purchaseAmount * 0.1);
+
+    // Award bonus to sponsor
+    sponsorGameState.flowers += bonusAmount;
+    sponsorGameState.totalReferralEarnings += bonusAmount;
+
+    // Update or create referral entry
+    if (existingReferral) {
+      existingReferral.earnings = bonusAmount;
+    } else {
+      sponsorGameState.referrals.push({
+        email: buyer.email,
+        referralCode: buyer.referralCode,
+        joinedAt: buyer.createdAt,
+        earnings: bonusAmount
+      });
+      sponsorGameState.invitedFriends += 1;
+    }
+
+    sponsorGameState.lastUpdated = new Date();
+    await sponsorGameState.save();
+
+    res.json({
+      success: true,
+      message: 'Referral bonus awarded',
+      bonusAwarded: true,
+      bonus: {
+        sponsor: sponsor.email,
+        amount: bonusAmount,
+        type: 'flowers',
+        purchaseType: purchaseType
+      },
+      sponsorNewBalance: {
+        flowers: sponsorGameState.flowers,
+        totalReferralEarnings: sponsorGameState.totalReferralEarnings,
+        invitedFriends: sponsorGameState.invitedFriends
+      }
+    });
+  } catch (error) {
+    console.error('Process referral error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing referral',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/game/:userId/link-referral
+// @desc    Link a user to their sponsor and increment invitedFriends
+// @access  Public (should be protected in production)
+router.post('/:userId/link-referral', async (req, res) => {
+  try {
+    // Get the user
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user has a sponsor
+    if (!user.sponsorCode) {
+      return res.json({
+        success: true,
+        message: 'No sponsor code found',
+        linked: false
+      });
+    }
+
+    // Find the sponsor
+    const sponsor = await User.findOne({ referralCode: user.sponsorCode });
+    if (!sponsor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Sponsor not found'
+      });
+    }
+
+    // Get sponsor's game state
+    let sponsorGameState = await GameState.findOne({ userId: sponsor._id });
+    if (!sponsorGameState) {
+      sponsorGameState = new GameState({ userId: sponsor._id });
+    }
+
+    // Check if already linked
+    const alreadyLinked = sponsorGameState.referrals.some(
+      r => r.email === user.email
+    );
+
+    if (alreadyLinked) {
+      return res.json({
+        success: true,
+        message: 'Referral already linked',
+        linked: false
+      });
+    }
+
+    // Add referral entry (without earnings yet)
+    sponsorGameState.referrals.push({
+      email: user.email,
+      referralCode: user.referralCode,
+      joinedAt: user.createdAt,
+      earnings: 0
+    });
+    sponsorGameState.invitedFriends += 1;
+    sponsorGameState.lastUpdated = new Date();
+    await sponsorGameState.save();
+
+    res.json({
+      success: true,
+      message: 'Referral linked successfully',
+      linked: true,
+      sponsor: {
+        email: sponsor.email,
+        invitedFriends: sponsorGameState.invitedFriends
+      }
+    });
+  } catch (error) {
+    console.error('Link referral error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error linking referral',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/game/:userId/purchase-flowers
+// @desc    Purchase flowers with USD (creates pending transaction, awards flowers and tickets)
+// @access  Public (should be protected in production)
+router.post('/:userId/purchase-flowers', async (req, res) => {
+  try {
+    const { amount, priceUSD, paymentMethod, transactionId } = req.body;
+
+    if (!amount || !priceUSD) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount and price are required'
+      });
+    }
+
+    // Get current game state
+    let gameState = await GameState.findOne({ userId: req.params.userId });
+    if (!gameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    // Award flowers
+    gameState.flowers += amount;
+
+    // Award tickets (1 ticket per $10 spent)
+    const ticketsEarned = Math.floor(priceUSD / 10);
+    if (ticketsEarned > 0) {
+      gameState.tickets += ticketsEarned;
+    }
+
+    // Clear pending funds flag
+    gameState.hasPendingFunds = false;
+    gameState.lastUpdated = new Date();
+    await gameState.save();
+
+    // Create transaction record in separate Transaction model (proper architecture)
+    const Transaction = require('../models/Transaction');
+    const transaction = new Transaction({
+      userId: req.params.userId,
+      type: 'flower_purchase',
+      amount: priceUSD,
+      currency: 'USD',
+      status: 'completed',
+      address: paymentMethod || '',
+      notes: `Purchased ${amount} flowers, earned ${ticketsEarned} tickets`
+    });
+    await transaction.save();
+
+    res.json({
+      success: true,
+      message: 'Flowers purchased successfully',
+      purchase: {
+        flowers: amount,
+        price: priceUSD,
+        ticketsEarned: ticketsEarned
+      },
+      gameState: {
+        userId: gameState.userId.toString(),
+        honey: gameState.honey,
+        flowers: gameState.flowers,
+        diamonds: gameState.diamonds,
+        tickets: gameState.tickets,
+        bvrCoins: gameState.bvrCoins,
+        bees: Object.fromEntries(gameState.bees),
+        alveoles: Object.fromEntries(gameState.alveoles),
+        invitedFriends: gameState.invitedFriends,
+        claimedMissions: gameState.claimedMissions,
+        referrals: gameState.referrals,
+        totalReferralEarnings: gameState.totalReferralEarnings,
+        hasPendingFunds: gameState.hasPendingFunds,
+        transactions: [], // Transactions stored in separate Transaction model
+        diamondsThisYear: gameState.diamondsThisYear,
+        yearStartDate: gameState.yearStartDate
+      }
+    });
+  } catch (error) {
+    console.error('Purchase flowers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error purchasing flowers',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/game/:userId/set-pending-funds
+// @desc    Mark that user has sent payment and funds are pending verification
+// @access  Public (should be protected in production)
+router.post('/:userId/set-pending-funds', async (req, res) => {
+  try {
+    const { hasPending } = req.body;
+
+    // Get current game state
+    let gameState = await GameState.findOne({ userId: req.params.userId });
+    if (!gameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    gameState.hasPendingFunds = hasPending !== undefined ? hasPending : true;
+    gameState.lastUpdated = new Date();
+    await gameState.save();
+
+    res.json({
+      success: true,
+      message: 'Pending funds status updated',
+      hasPendingFunds: gameState.hasPendingFunds
+    });
+  } catch (error) {
+    console.error('Set pending funds error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating pending funds status',
       error: error.message
     });
   }

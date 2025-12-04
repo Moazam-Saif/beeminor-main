@@ -311,6 +311,16 @@ export const [GameProvider, useGame] = createContextHook(() => {
               setAlveoles(state.alveoles);
             }
             
+            // Link referral on first login (if user has sponsor and not yet linked)
+            if (sponsorCode && state.referrals.length === 0) {
+              try {
+                await gameAPI.linkReferral(currentUserId);
+              } catch (linkError) {
+                console.log('Referral link note:', linkError);
+                // Non-blocking
+              }
+            }
+            
             // Save to local storage as backup
             const gameState: GameState = {
               honey: state.honey ?? 100,
@@ -639,6 +649,15 @@ export const [GameProvider, useGame] = createContextHook(() => {
           // Update state with backend response
           setFlowers(response.gameState.flowers);
           setBees(response.gameState.bees);
+          
+          // Process referral bonus for sponsor (10% of purchase)
+          try {
+            await gameAPI.processReferral(currentUserId, beeType.cost, 'bee_purchase');
+          } catch (refError) {
+            console.log('Referral processing note:', refError);
+            // Non-blocking - purchase succeeded regardless
+          }
+          
           return true;
         }
         return false;
@@ -659,10 +678,31 @@ export const [GameProvider, useGame] = createContextHook(() => {
     return true;
   }, [flowers, bees, currentUserId]);
 
-  const buyFlowers = useCallback((amount: number, priceUSD: number) => {
+  const buyFlowers = useCallback(async (amount: number, priceUSD: number) => {
     if (!hasPendingFunds) {
       return false;
     }
+
+    // If user is authenticated, use backend
+    if (currentUserId) {
+      try {
+        const response = await gameAPI.purchaseFlowers(currentUserId, amount, priceUSD);
+        if (response.success && response.gameState) {
+          // Update state with backend response
+          setFlowers(response.gameState.flowers);
+          setTickets(response.gameState.tickets);
+          setHasPendingFunds(response.gameState.hasPendingFunds);
+          setTransactions(response.gameState.transactions);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('Failed to purchase flowers from backend:', error);
+        // Fallback to local update if backend fails
+      }
+    }
+
+    // Fallback: local-only update (for offline or unauthenticated users)
     const newFlowers = flowers + amount;
     const ticketsEarned = Math.floor(priceUSD / 10);
     setFlowers(newFlowers);
@@ -671,7 +711,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
     }
     setHasPendingFunds(false);
     return true;
-  }, [flowers, hasPendingFunds]);
+  }, [flowers, hasPendingFunds, currentUserId]);
 
   const useTicket = useCallback(() => {
     if (tickets > 0) {
@@ -739,9 +779,25 @@ export const [GameProvider, useGame] = createContextHook(() => {
     setTickets((current) => current + amount);
   }, []);
 
-  const setFundsPending = useCallback((pending: boolean) => {
+  const setFundsPending = useCallback(async (pending: boolean) => {
+    // If user is authenticated, use backend
+    if (currentUserId) {
+      try {
+        const response = await gameAPI.setPendingFunds(currentUserId, pending);
+        if (response.success) {
+          setHasPendingFunds(response.hasPendingFunds);
+          return true;
+        }
+      } catch (error) {
+        console.error('Failed to set pending funds from backend:', error);
+        // Fallback to local update if backend fails
+      }
+    }
+
+    // Fallback: local-only update
     setHasPendingFunds(pending);
-  }, []);
+    return true;
+  }, [currentUserId]);
 
   const getTotalBees = useCallback(() => {
     return Object.values(bees).reduce((sum, count) => sum + count, 0);
@@ -764,6 +820,15 @@ export const [GameProvider, useGame] = createContextHook(() => {
           // Update state with backend response
           setFlowers(response.gameState.flowers);
           setAlveoles(response.gameState.alveoles);
+          
+          // Process referral bonus for sponsor (10% of purchase)
+          try {
+            await gameAPI.processReferral(currentUserId, alveoleInfo.cost, 'alveole_upgrade');
+          } catch (refError) {
+            console.log('Referral processing note:', refError);
+            // Non-blocking - purchase succeeded regardless
+          }
+          
           return true;
         }
         return false;

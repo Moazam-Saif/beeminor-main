@@ -346,6 +346,86 @@ export const gameAPI = {
       body: JSON.stringify({ missionId }),
     });
   },
+
+  processReferral: async (userId: string, purchaseAmount: number, purchaseType: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      bonusAwarded: boolean;
+      bonus?: {
+        sponsor: string;
+        amount: number;
+        type: string;
+        purchaseType: string;
+      };
+      sponsorNewBalance?: {
+        flowers: number;
+        totalReferralEarnings: number;
+        invitedFriends: number;
+      };
+    }>(`/api/game/${userId}/process-referral`, {
+      method: 'POST',
+      body: JSON.stringify({ purchaseAmount, purchaseType }),
+    });
+  },
+
+  linkReferral: async (userId: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      linked: boolean;
+      sponsor?: {
+        email: string;
+        invitedFriends: number;
+      };
+    }>(`/api/game/${userId}/link-referral`, {
+      method: 'POST',
+    });
+  },
+
+  purchaseFlowers: async (userId: string, amount: number, priceUSD: number, paymentMethod?: string, transactionId?: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      purchase: {
+        flowers: number;
+        price: number;
+        ticketsEarned: number;
+      };
+      gameState: {
+        userId: string;
+        honey: number;
+        flowers: number;
+        diamonds: number;
+        tickets: number;
+        bvrCoins: number;
+        bees: Record<string, number>;
+        alveoles: Record<number, boolean>;
+        invitedFriends: number;
+        claimedMissions: number[];
+        referrals: any[];
+        totalReferralEarnings: number;
+        hasPendingFunds: boolean;
+        transactions: any[];
+        diamondsThisYear: number;
+        yearStartDate: string;
+      };
+    }>(`/api/game/${userId}/purchase-flowers`, {
+      method: 'POST',
+      body: JSON.stringify({ amount, priceUSD, paymentMethod, transactionId }),
+    });
+  },
+
+  setPendingFunds: async (userId: string, hasPending: boolean) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      hasPendingFunds: boolean;
+    }>(`/api/game/${userId}/set-pending-funds`, {
+      method: 'POST',
+      body: JSON.stringify({ hasPending }),
+    });
+  },
 };
 
 // Leaderboard API
