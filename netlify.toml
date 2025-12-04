@@ -3,7 +3,7 @@
 
 [build]
   # Build command for Expo web
-  command = "npx expo export:web"
+  command = "npx expo export --platform web"
   
   # Output directory where built files are stored
   publish = "dist/"

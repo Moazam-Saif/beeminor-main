@@ -73,7 +73,7 @@ NODE_ENV=production
 
 4. **Configure Build Settings**
    ```
-   Build command: npx expo export:web
+   Build command: npx expo export --platform web
    Publish directory: dist/
    Base directory: (leave empty)
    ```
@@ -100,7 +100,7 @@ netlify init
 # - Create & configure a new site
 # - Select GitHub as git provider
 # - Choose your repository
-# - Build command: npx expo export:web
+# - Build command: npx expo export --platform web
 # - Publish directory: dist/
 ```
 
@@ -121,7 +121,7 @@ netlify init
 
 3. **Configure Build Settings:**
    - Site Settings → Build & deploy → Build settings
-   - Build command: `npx expo export:web`
+   - Build command: `npx expo export --platform web`
    - Publish directory: `dist/`
    - Production branch: `main` (or your default branch)
 
@@ -145,7 +145,7 @@ netlify init
 
 ```bash
 # Build your app locally first (optional but recommended)
-npx expo export:web
+npx expo export --platform web
 
 # Deploy to production
 netlify deploy --prod
@@ -248,7 +248,7 @@ git push
 ```bash
 # Solution: Add to package.json scripts:
 "scripts": {
-  "build": "npx expo export:web",
+  "build": "npx expo export --platform web",
   "predeploy": "npm run build"
 }
 ```
@@ -420,7 +420,7 @@ If you encounter issues:
 2. Check browser console: F12 → Console tab
 3. Check backend logs on your server
 4. Verify all environment variables are set correctly
-5. Test locally first: `npx expo export:web` then check `dist/` folder
+5. Test locally first: `npx expo export --platform web` then check `dist/` folder
 
 ---
 
