@@ -59,7 +59,7 @@ export default function TachesScreen() {
     Alert.alert(t.copyReferralCode, `${t.inviteLink} ${t.copied.toLowerCase()}`);
   };
 
-  const handleClaimReward = (mission: Mission) => {
+  const handleClaimReward = async (mission: Mission) => {
     if (claimedMissions.includes(mission.id)) {
       Alert.alert(t.claimed, t.alreadyClaimed);
       return;
@@ -73,13 +73,15 @@ export default function TachesScreen() {
       return;
     }
 
-    const success = claimMission(mission.id, mission.flowersReward, mission.ticketsReward);
+    const success = await claimMission(mission.id, mission.flowersReward, mission.ticketsReward);
     if (success) {
       let message = `+${mission.flowersReward} fleurs`;
       if (mission.ticketsReward > 0) {
         message += ` et +${mission.ticketsReward} ticket${mission.ticketsReward > 1 ? 's' : ''} roulette`;
       }
       Alert.alert(t.rewardClaimed, message);
+    } else {
+      Alert.alert(t.error, t.claimFailed || 'Failed to claim mission');
     }
   };
 

@@ -900,14 +900,34 @@ export const [GameProvider, useGame] = createContextHook(() => {
     setIsLoaded(false);
   }, []);
 
-  const claimMission = useCallback((missionId: number, flowersReward: number, ticketsReward: number) => {
+  const claimMission = useCallback(async (missionId: number, flowersReward: number, ticketsReward: number) => {
+    // Optimistic check - validate locally first
     if (claimedMissions.includes(missionId)) return false;
 
+    // If user is authenticated, use backend validation
+    if (currentUserId) {
+      try {
+        const response = await gameAPI.claimMission(currentUserId, missionId);
+        if (response.success && response.gameState) {
+          // Update state with backend response
+          setClaimedMissions(response.gameState.claimedMissions);
+          setFlowers(response.gameState.flowers);
+          setTickets(response.gameState.tickets);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('Failed to claim mission from backend:', error);
+        // Fallback to local update if backend fails
+      }
+    }
+
+    // Fallback: local-only update (for offline or unauthenticated users)
     setClaimedMissions((current) => [...current, missionId]);
     setFlowers((current) => current + flowersReward);
     setTickets((current) => current + ticketsReward);
     return true;
-  }, [claimedMissions]);
+  }, [claimedMissions, currentUserId]);
 
   const addReferralDeposit = useCallback((referralId: string, depositAmount: number) => {
     setReferrals((current) => {

@@ -313,6 +313,39 @@ export const gameAPI = {
       method: 'POST',
     });
   },
+
+  claimMission: async (userId: string, missionId: number) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      mission: {
+        id: number;
+        flowersReward: number;
+        ticketsReward: number;
+      };
+      gameState: {
+        userId: string;
+        honey: number;
+        flowers: number;
+        diamonds: number;
+        tickets: number;
+        bvrCoins: number;
+        bees: Record<string, number>;
+        alveoles: Record<number, boolean>;
+        invitedFriends: number;
+        claimedMissions: number[];
+        referrals: any[];
+        totalReferralEarnings: number;
+        hasPendingFunds: boolean;
+        transactions: any[];
+        diamondsThisYear: number;
+        yearStartDate: string;
+      };
+    }>(`/api/game/${userId}/claim-mission`, {
+      method: 'POST',
+      body: JSON.stringify({ missionId }),
+    });
+  },
 };
 
 // Leaderboard API

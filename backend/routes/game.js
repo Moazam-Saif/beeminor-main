@@ -496,6 +496,110 @@ router.post('/:userId/spin-roulette', async (req, res) => {
   }
 });
 
+// @route   POST /api/game/:userId/claim-mission
+// @desc    Claim mission rewards with validation
+// @access  Public
+router.post('/:userId/claim-mission', async (req, res) => {
+  try {
+    const { missionId } = req.body;
+
+    // Validation
+    if (!missionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mission ID is required'
+      });
+    }
+
+    // Mission configuration (server-side)
+    const MISSIONS = [
+      { id: 1, friendsRequired: 1, flowersReward: 500, ticketsReward: 0 },
+      { id: 2, friendsRequired: 3, flowersReward: 1500, ticketsReward: 0 },
+      { id: 3, friendsRequired: 10, flowersReward: 4000, ticketsReward: 0 },
+      { id: 4, friendsRequired: 50, flowersReward: 12000, ticketsReward: 1 },
+      { id: 5, friendsRequired: 100, flowersReward: 30000, ticketsReward: 2 },
+      { id: 6, friendsRequired: 300, flowersReward: 70000, ticketsReward: 3 },
+      { id: 7, friendsRequired: 500, flowersReward: 160000, ticketsReward: 5 }
+    ];
+
+    const mission = MISSIONS.find(m => m.id === missionId);
+    if (!mission) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid mission ID'
+      });
+    }
+
+    // Get current game state
+    let gameState = await GameState.findOne({ userId: req.params.userId });
+    if (!gameState) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game state not found'
+      });
+    }
+
+    // Check if mission already claimed
+    if (gameState.claimedMissions.includes(missionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mission already claimed'
+      });
+    }
+
+    // Check if user has enough invited friends
+    if (gameState.invitedFriends < mission.friendsRequired) {
+      return res.status(400).json({
+        success: false,
+        message: `Not enough invited friends. Need ${mission.friendsRequired}, have ${gameState.invitedFriends}`
+      });
+    }
+
+    // Award mission rewards
+    gameState.claimedMissions.push(missionId);
+    gameState.flowers += mission.flowersReward;
+    gameState.tickets += mission.ticketsReward;
+    gameState.lastUpdated = new Date();
+
+    await gameState.save();
+
+    res.json({
+      success: true,
+      message: 'Mission claimed successfully',
+      mission: {
+        id: mission.id,
+        flowersReward: mission.flowersReward,
+        ticketsReward: mission.ticketsReward
+      },
+      gameState: {
+        userId: gameState.userId.toString(),
+        honey: gameState.honey,
+        flowers: gameState.flowers,
+        diamonds: gameState.diamonds,
+        tickets: gameState.tickets,
+        bvrCoins: gameState.bvrCoins,
+        bees: Object.fromEntries(gameState.bees),
+        alveoles: Object.fromEntries(gameState.alveoles),
+        invitedFriends: gameState.invitedFriends,
+        claimedMissions: gameState.claimedMissions,
+        referrals: gameState.referrals,
+        totalReferralEarnings: gameState.totalReferralEarnings,
+        hasPendingFunds: gameState.hasPendingFunds,
+        transactions: gameState.transactions,
+        diamondsThisYear: gameState.diamondsThisYear,
+        yearStartDate: gameState.yearStartDate
+      }
+    });
+  } catch (error) {
+    console.error('Claim mission error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error claiming mission',
+      error: error.message
+    });
+  }
+});
+
 // @route   POST /api/game/:userId/add-test-resources
 // @desc    Add testing resources (for development only)
 // @access  Public (should be removed in production)
