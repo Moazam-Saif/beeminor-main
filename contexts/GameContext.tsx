@@ -174,6 +174,8 @@ export const [GameProvider, useGame] = createContextHook(() => {
   const [allUsersLeaderboard, setAllUsersLeaderboard] = useState<LeaderboardUser[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef<boolean>(false); // Track if save is in progress
+  const lastSyncTimestampRef = useRef<number>(0); // Track last successful sync
 
   useEffect(() => {
     loadUserId();
@@ -200,8 +202,21 @@ export const [GameProvider, useGame] = createContextHook(() => {
     }
   };
 
-  const syncGameStateFromBackend = useCallback(async (userId: string) => {
+  const syncGameStateFromBackend = useCallback(async (userId: string, force = false) => {
     try {
+      // If there's a pending save or save in progress, don't overwrite with potentially stale backend data
+      if (!force && (saveTimeoutRef.current || isSavingRef.current)) {
+        console.log('⏳ Skipping sync - local changes pending or save in progress');
+        return;
+      }
+      
+      // Don't sync too frequently (minimum 30 seconds between syncs unless forced)
+      const now = Date.now();
+      if (!force && now - lastSyncTimestampRef.current < 30000) {
+        console.log('⏳ Skipping sync - synced recently');
+        return;
+      }
+
       const response = await gameAPI.getGameState(userId);
       if (response.success && response.gameState) {
         const state = response.gameState;
@@ -225,6 +240,8 @@ export const [GameProvider, useGame] = createContextHook(() => {
         if (state.alveoles) {
           setAlveoles(state.alveoles);
         }
+        lastSyncTimestampRef.current = Date.now();
+        console.log('✅ Synced from backend - Honey:', state.honey);
       }
     } catch (error) {
       console.error('Failed to sync game state from backend:', error);
@@ -238,20 +255,21 @@ export const [GameProvider, useGame] = createContextHook(() => {
     setCurrentUserId(userId);
     if (userId) {
       await AsyncStorage.setItem(USER_ID_KEY, userId);
-      // Load game state from backend when user is set
-      await syncGameStateFromBackend(userId);
+      // Load game state from backend when user is set (force = true on login)
+      await syncGameStateFromBackend(userId, true);
     } else {
       await AsyncStorage.removeItem(USER_ID_KEY);
     }
   }, [syncGameStateFromBackend]);
 
-  // Periodic sync: refresh from backend every 30 seconds to ensure cross-device sync
+  // Periodic sync: refresh from backend every 2 minutes (reduced frequency to minimize conflicts)
+  // Only syncs if there are no pending local changes and enough time has passed
   useEffect(() => {
     if (!currentUserId) return;
 
     const syncInterval = setInterval(() => {
-      syncGameStateFromBackend(currentUserId);
-    }, 30000); // 30 seconds
+      syncGameStateFromBackend(currentUserId, false);
+    }, 120000); // 120 seconds (2 minutes) - even less aggressive for production
 
     return () => clearInterval(syncInterval);
   }, [currentUserId, syncGameStateFromBackend]);
@@ -513,9 +531,11 @@ export const [GameProvider, useGame] = createContextHook(() => {
           clearTimeout(saveTimeoutRef.current);
         }
         
-        // Debounce backend sync (save after 2 seconds of no changes)
+        // Debounce backend sync (save after 500ms of no changes)
         saveTimeoutRef.current = setTimeout(async () => {
+          isSavingRef.current = true;
           try {
+            console.log('💾 Saving to backend - Honey:', newHoney);
             const backendState = {
               honey: newHoney,
               flowers: newFlowers,
@@ -548,10 +568,16 @@ export const [GameProvider, useGame] = createContextHook(() => {
             };
 
             await gameAPI.updateGameState(currentUserId, backendState);
+            console.log('✅ Saved to backend successfully - Honey:', newHoney);
+            lastSyncTimestampRef.current = Date.now();
           } catch (error) {
-            console.error('Failed to sync game state to backend:', error);
+            console.error('❌ Failed to sync game state to backend:', error);
+          } finally {
+            // Clear flags after save attempt
+            saveTimeoutRef.current = null;
+            isSavingRef.current = false;
           }
-        }, 2000); // 2 second debounce
+        }, 500) as any;
       }
     } catch (error) {
       console.error('Failed to save game state:', error);
