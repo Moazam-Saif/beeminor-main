@@ -1,47 +1,49 @@
-const brevo = require('@getbrevo/brevo');
+const nodemailer = require('nodemailer');
 
 /**
  * Email Configuration
- * Using Brevo (formerly Sendinblue) API for email notifications
- * Works on Railway free tier - no domain verification needed
+ * Using Gmail SMTP for email notifications
+ * NOTE: Railway free tier blocks SMTP ports (587, 465)
+ * Emails will not work on Railway without upgrading or using HTTP-based email service
  */
 
-let apiInstance = null;
+let transporter = null;
 let isConfigured = false;
 
-// Initialize Brevo client
-const initializeBrevo = () => {
-  const apiKey = process.env.BREVO_API_KEY;
+// Create transporter
+const createTransporter = () => {
+  const emailUser = process.env.EMAIL_USER;
+  const emailPassword = process.env.EMAIL_PASSWORD;
 
   console.log('📧 Email configuration check:');
-  console.log('   BREVO_API_KEY:', apiKey ? `${apiKey.substring(0, 7)}***` : 'NOT SET');
+  console.log('   EMAIL_USER:', emailUser ? `${emailUser.substring(0, 3)}***@${emailUser.split('@')[1] || ''}` : 'NOT SET');
+  console.log('   EMAIL_PASSWORD:', emailPassword ? '****** (set)' : 'NOT SET');
 
-  if (!apiKey) {
-    console.warn('⚠️  Brevo API key not configured. Email notifications will be disabled.');
-    console.warn('   Set BREVO_API_KEY in environment variables to enable email notifications.');
-    console.warn('   Get your API key at: https://app.brevo.com/settings/keys/api');
+  if (!emailUser || !emailPassword) {
+    console.warn('⚠️  Email credentials not configured. Email notifications will be disabled.');
+    console.warn('   Set EMAIL_USER and EMAIL_PASSWORD in environment variables to enable email notifications.');
     return null;
   }
 
   try {
-    apiInstance = new brevo.TransactionalEmailsApi();
-    const apiKeyAuth = apiInstance.authentications['apiKey'];
-    apiKeyAuth.apiKey = apiKey;
+    transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: emailUser,
+        pass: emailPassword
+      }
+    });
+
     isConfigured = true;
-    console.log('✅ Brevo email service configured successfully');
-    return apiInstance;
+    console.log('✅ Email transporter configured');
+    console.log('⚠️  WARNING: Railway free tier blocks SMTP ports - emails will fail');
+    return transporter;
   } catch (error) {
-    console.error('❌ Failed to initialize Brevo:', error.message);
+    console.error('❌ Failed to create email transporter:', error.message);
     return null;
   }
-};
-
-// Lazy-initialize on first use
-const getBrevo = () => {
-  if (!apiInstance && !isConfigured) {
-    initializeBrevo();
-  }
-  return apiInstance;
 };
 
 /**
@@ -53,46 +55,47 @@ const getBrevo = () => {
  * @param {string} [mailOptions.from] - Sender email (optional)
  */
 const sendEmail = async (mailOptions) => {
-  const brevoClient = getBrevo();
-  if (!brevoClient) {
-    console.log('📧 Email notification skipped (Brevo not configured)');
+  if (!transporter && !isConfigured) {
+    createTransporter();
+  }
+
+  if (!transporter) {
+    console.log('📧 Email notification skipped (email not configured)');
     return { success: false, message: 'Email service not configured' };
   }
 
   try {
-    const senderEmail = process.env.EMAIL_FROM || 'noreply@beeminor.com';
-    const senderName = 'BeeMiner';
+    if (!mailOptions.from) {
+      mailOptions.from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    }
 
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    sendSmtpEmail.sender = { email: senderEmail, name: senderName };
-    sendSmtpEmail.to = [{ email: mailOptions.to }];
-    sendSmtpEmail.subject = mailOptions.subject;
-    sendSmtpEmail.htmlContent = mailOptions.html;
-
-    const data = await brevoClient.sendTransacEmail(sendSmtpEmail);
-    console.log('✅ Email sent successfully via Brevo:', data.messageId);
-    return { success: true, messageId: data.messageId };
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent successfully:', info.messageId);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Failed to send email via Brevo:', error);
-    return { success: false, error: error.message || error.toString() };
+    console.error('❌ Failed to send email:', error.message);
+    return { success: false, error: error.message };
   }
 };
 
 /**
  * Verify email configuration
- * For Brevo, we just check if API key is set
  */
 const verifyEmailConfig = async () => {
-  const brevoClient = getBrevo();
-  if (!brevoClient) {
-    console.log('⚠️  Brevo API key not configured - email notifications disabled');
-    return { success: false, message: 'Brevo API key not configured' };
+  if (!transporter && !isConfigured) {
+    createTransporter();
   }
 
-  console.log('✅ Brevo email service ready');
-  console.log('ℹ️  Get your API key at: https://app.brevo.com/settings/keys/api');
-  console.log('ℹ️  Free tier: 300 emails/day, no domain verification needed');
-  return { success: true, message: 'Brevo configured successfully' };
+  if (!transporter) {
+    console.log('⚠️  Email service not configured - skipping verification');
+    return { success: false, message: 'Email service not configured' };
+  }
+
+  console.log('⚠️  Email configured but Railway free tier blocks SMTP ports');
+  console.log('ℹ️  Emails will NOT work on Railway without:');
+  console.log('   1. Upgrading Railway plan, OR');
+  console.log('   2. Using HTTP-based email service (SendGrid, Postmark, etc.)');
+  return { success: true, message: 'Email configured (will fail on Railway free tier)' };
 };
 
 module.exports = {
