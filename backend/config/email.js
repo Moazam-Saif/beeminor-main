@@ -10,14 +10,19 @@ const createTransporter = () => {
   const emailUser = process.env.EMAIL_USER;
   const emailPassword = process.env.EMAIL_PASSWORD;
 
+  // Debug: Check if variables are loaded
+  console.log('📧 Email configuration check:');
+  console.log('   EMAIL_USER:', emailUser ? `${emailUser.substring(0, 3)}***@${emailUser.split('@')[1] || ''}` : 'NOT SET');
+  console.log('   EMAIL_PASSWORD:', emailPassword ? '****** (set)' : 'NOT SET');
+
   if (!emailUser || !emailPassword) {
     console.warn('⚠️  Email credentials not configured. Email notifications will be disabled.');
-    console.warn('   Set EMAIL_USER and EMAIL_PASSWORD in .env file to enable email notifications.');
+    console.warn('   Set EMAIL_USER and EMAIL_PASSWORD in environment variables to enable email notifications.');
     return null;
   }
 
   try {
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: emailUser,
@@ -43,14 +48,24 @@ const createTransporter = () => {
   }
 };
 
-// Initialize transporter
-const transporter = createTransporter();
+// Lazy-initialize transporter on first use
+let transporter = null;
+let transporterInitialized = false;
+
+const getTransporter = () => {
+  if (!transporterInitialized) {
+    transporter = createTransporter();
+    transporterInitialized = true;
+  }
+  return transporter;
+};
 
 /**
  * Send email function with error handling
  */
 const sendEmail = async (mailOptions) => {
-  if (!transporter) {
+  const currentTransporter = getTransporter();
+  if (!currentTransporter) {
     console.log('📧 Email notification skipped (email not configured)');
     return { success: false, message: 'Email service not configured' };
   }
@@ -61,7 +76,7 @@ const sendEmail = async (mailOptions) => {
       mailOptions.from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
     }
 
-    const info = await transporter.sendMail(mailOptions);
+    const info = await currentTransporter.sendMail(mailOptions);
     console.log('✅ Email sent successfully:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
@@ -74,14 +89,15 @@ const sendEmail = async (mailOptions) => {
  * Verify email configuration with timeout
  */
 const verifyEmailConfig = async () => {
-  if (!transporter) {
+  const currentTransporter = getTransporter();
+  if (!currentTransporter) {
     console.log('⚠️  Email service not configured - skipping verification');
     return { success: false, message: 'Email service not configured' };
   }
 
   try {
     // Add timeout to prevent hanging
-    const verifyPromise = transporter.verify();
+    const verifyPromise = currentTransporter.verify();
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Email verification timeout')), 15000)
     );
