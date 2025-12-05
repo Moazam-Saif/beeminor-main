@@ -6,6 +6,7 @@
     "start": "bunx rork start -p m7effuway2jcmghlbz64k --tunnel",
     "start-web": "bunx rork start -p m7effuway2jcmghlbz64k --web --tunnel",
     "start-web-dev": "DEBUG=expo* bunx rork start -p m7effuway2jcmghlbz64k --web --tunnel",
+    "build:web": "expo export --platform web --no-dev --non-interactive --output-dir web-build",
     "backend:dev": "cd backend && npm run dev",
     "backend:start": "cd backend && npm start",
     "backend": "npm run backend:dev",

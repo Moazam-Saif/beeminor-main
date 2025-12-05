@@ -2,11 +2,11 @@
 # Manual Deploy Only - Auto-publish disabled for safety
 
 [build]
-  # Build command for Expo web
-  command = "npx expo export --platform web"
+  # Build command for Expo web (non-interactive, outputs to web-build)
+  command = "npm run build:web"
   
   # Output directory where built files are stored
-  publish = "dist/"
+  publish = "web-build/"
   
   # Base directory (project root)
   base = "."
@@ -14,6 +14,7 @@
 [build.environment]
   # Node version
   NODE_VERSION = "20"
+  EXPO_NO_TELEMETRY = "1"
   
   # Environment variables (configure in Netlify dashboard)
   # EXPO_PUBLIC_API_BASE_URL = "https://your-backend-url.com"
