@@ -5,8 +5,28 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configuration for cross-origin requests
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow all origins in production (you can restrict this later)
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 204,
+  preflightContinue: false
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
