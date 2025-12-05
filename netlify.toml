@@ -13,7 +13,7 @@
 
 [build.environment]
   # Node version
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   
   # Environment variables (configure in Netlify dashboard)
   # EXPO_PUBLIC_API_BASE_URL = "https://your-backend-url.com"
