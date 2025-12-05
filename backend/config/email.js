@@ -1,92 +1,80 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 /**
  * Email Configuration
- * Using Gmail SMTP for email notifications
+ * Using Resend API for email notifications (works on Railway free tier)
  */
 
-// Create transporter with Gmail SMTP settings
-const createTransporter = () => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPassword = process.env.EMAIL_PASSWORD;
+let resend = null;
+let isConfigured = false;
 
-  // Debug: Check if variables are loaded
+// Initialize Resend client
+const initializeResend = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+
   console.log('📧 Email configuration check:');
-  console.log('   EMAIL_USER:', emailUser ? `${emailUser.substring(0, 3)}***@${emailUser.split('@')[1] || ''}` : 'NOT SET');
-  console.log('   EMAIL_PASSWORD:', emailPassword ? '****** (set)' : 'NOT SET');
+  console.log('   RESEND_API_KEY:', apiKey ? `${apiKey.substring(0, 7)}***` : 'NOT SET');
 
-  if (!emailUser || !emailPassword) {
-    console.warn('⚠️  Email credentials not configured. Email notifications will be disabled.');
-    console.warn('   Set EMAIL_USER and EMAIL_PASSWORD in environment variables to enable email notifications.');
+  if (!apiKey) {
+    console.warn('⚠️  Resend API key not configured. Email notifications will be disabled.');
+    console.warn('   Set RESEND_API_KEY in environment variables to enable email notifications.');
+    console.warn('   Get your API key at: https://resend.com/api-keys');
     return null;
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: emailUser,
-        pass: emailPassword
-      },
-      // Increased timeouts for Railway's network
-      connectionTimeout: 30000, // 30 seconds
-      greetingTimeout: 30000, // 30 seconds
-      socketTimeout: 30000, // 30 seconds
-      // TLS settings for Gmail
-      requireTLS: true,
-      tls: {
-        rejectUnauthorized: true,
-        minVersion: 'TLSv1.2'
-      },
-      // Additional Gmail-specific settings
-      pool: true, // Use pooled connections
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 1000,
-      rateLimit: 5
-    });
-
-    console.log('✅ Email transporter configured successfully');
-    return transporter;
+    resend = new Resend(apiKey);
+    isConfigured = true;
+    console.log('✅ Resend email service configured successfully');
+    return resend;
   } catch (error) {
-    console.error('❌ Failed to create email transporter:', error.message);
+    console.error('❌ Failed to initialize Resend:', error.message);
     return null;
   }
 };
 
-// Lazy-initialize transporter on first use
-let transporter = null;
-let transporterInitialized = false;
-
-const getTransporter = () => {
-  if (!transporterInitialized) {
-    transporter = createTransporter();
-    transporterInitialized = true;
+// Lazy-initialize on first use
+const getResend = () => {
+  if (!resend && !isConfigured) {
+    initializeResend();
   }
-  return transporter;
+  return resend;
 };
 
 /**
  * Send email function with error handling
+ * @param {Object} mailOptions - Email options
+ * @param {string} mailOptions.to - Recipient email
+ * @param {string} mailOptions.subject - Email subject
+ * @param {string} mailOptions.html - HTML content
+ * @param {string} [mailOptions.from] - Sender email (optional)
  */
 const sendEmail = async (mailOptions) => {
-  const currentTransporter = getTransporter();
-  if (!currentTransporter) {
-    console.log('📧 Email notification skipped (email not configured)');
+  const resendClient = getResend();
+  if (!resendClient) {
+    console.log('📧 Email notification skipped (Resend not configured)');
     return { success: false, message: 'Email service not configured' };
   }
 
   try {
-    // Add default sender if not specified
-    if (!mailOptions.from) {
-      mailOptions.from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    // Resend requires 'from' to be a verified domain
+    // Default to onboarding@resend.dev for testing, or use your verified domain
+    const from = mailOptions.from || process.env.EMAIL_FROM || 'BeeMiner <onboarding@resend.dev>';
+
+    const { data, error } = await resendClient.emails.send({
+      from: from,
+      to: [mailOptions.to],
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+    });
+
+    if (error) {
+      console.error('❌ Failed to send email via Resend:', error);
+      return { success: false, error: error.message };
     }
 
-    const info = await currentTransporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    console.log('✅ Email sent successfully via Resend:', data.id);
+    return { success: true, messageId: data.id };
   } catch (error) {
     console.error('❌ Failed to send email:', error.message);
     return { success: false, error: error.message };
@@ -94,40 +82,24 @@ const sendEmail = async (mailOptions) => {
 };
 
 /**
- * Verify email configuration with timeout
+ * Verify email configuration
+ * For Resend, we just check if API key is set (no connection test needed)
  */
 const verifyEmailConfig = async () => {
-  const currentTransporter = getTransporter();
-  if (!currentTransporter) {
-    console.log('⚠️  Email service not configured - skipping verification');
-    return { success: false, message: 'Email service not configured' };
+  const resendClient = getResend();
+  if (!resendClient) {
+    console.log('⚠️  Resend API key not configured - email notifications disabled');
+    return { success: false, message: 'Resend API key not configured' };
   }
 
-  try {
-    // Add timeout to prevent hanging - increased for Railway
-    const verifyPromise = currentTransporter.verify();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Email verification timeout')), 35000)
-    );
-    
-    await Promise.race([verifyPromise, timeoutPromise]);
-    console.log('✅ Email server is ready to send messages');
-    console.log('ℹ️  Make sure you are using an App Password if you have 2FA enabled on Gmail');
-    return { success: true, message: 'Email configuration verified' };
-  } catch (error) {
-    console.error('⚠️  Email configuration verification failed (non-critical):', error.message);
-    console.log('   Possible causes:');
-    console.log('   1. Gmail requires App Password (not regular password) if 2FA is enabled');
-    console.log('   2. "Less secure app access" needs to be enabled in Gmail settings');
-    console.log('   3. Network/firewall blocking SMTP port 587');
-    console.log('   Email sending will be attempted but may fail if credentials are incorrect');
-    // Don't fail startup - return success with warning
-    return { success: true, warning: error.message };
-  }
+  console.log('✅ Resend email service ready');
+  console.log('ℹ️  Get your API key at: https://resend.com/api-keys');
+  console.log('ℹ️  Free tier: 100 emails/day, 3,000 emails/month');
+  return { success: true, message: 'Resend configured successfully' };
 };
 
 module.exports = {
   sendEmail,
   verifyEmailConfig,
-  isConfigured: () => transporter !== null
+  isConfigured: () => isConfigured
 };
