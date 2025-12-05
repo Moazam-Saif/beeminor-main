@@ -222,6 +222,29 @@ router.put('/:id/status', async (req, res) => {
     let refundedAmount = 0;
     let refundedCurrency = '';
 
+    // If deposit is being completed, add flowers to user account
+    if (transaction.type === 'deposit_crypto' && 
+        transaction.status === 'pending' && 
+        status === 'completed') {
+      console.log('=== DEPOSIT COMPLETION DEBUG ===');
+      console.log('Transaction type:', transaction.type);
+      console.log('Flowers to add:', transaction.flowersAmount);
+      
+      const gameState = await GameState.findOne({ userId: transaction.userId });
+      if (gameState) {
+        console.log('Before deposit - flowers:', gameState.flowers);
+        
+        // Add flowers based on USD deposit
+        gameState.flowers += transaction.flowersAmount || 0;
+        
+        await gameState.save();
+        console.log('After deposit - flowers:', gameState.flowers);
+        console.log('=== DEPOSIT COMPLETE ===');
+      } else {
+        console.log('ERROR: GameState not found for deposit');
+      }
+    }
+
     // If withdrawal is being cancelled/failed, refund the resources
     if ((transaction.type === 'withdrawal' || transaction.type === 'withdrawal_diamond' || transaction.type === 'withdrawal_bvr') && 
         transaction.status === 'pending' && 
