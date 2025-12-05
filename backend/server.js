@@ -98,6 +98,7 @@ app.use('/api/game', require('./routes/game'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/referrals', require('./routes/referrals'));
+app.use('/api/support', require('./routes/support'));
 
 // API base route
 app.get('/api', (req, res) => {
@@ -111,7 +112,8 @@ app.get('/api', (req, res) => {
       '/api/game',
       '/api/leaderboard',
       '/api/transactions',
-      '/api/referrals'
+      '/api/referrals',
+      '/api/support'
     ]
   });
 });

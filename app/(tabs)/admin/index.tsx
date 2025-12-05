@@ -108,6 +108,13 @@ function AdminDashboard({ logout }: { logout: () => Promise<void> }) {
     return () => clearInterval(interval);
   }, [activeTab, game]);
 
+  // Load support messages from backend when messages tab is active
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      admin.refreshMessages();
+    }
+  }, [activeTab, admin]);
+
   const handleLogout = async () => {
     await logout();
     if (Platform.OS === 'web') {
@@ -1106,12 +1113,29 @@ function MessagesTab({ admin }: { admin: ReturnType<typeof useAdmin> }) {
     }
   };
 
+  const handleRefreshMessages = async () => {
+    await admin.refreshMessages();
+    if (Platform.OS === 'web') {
+      alert('Messages rechargés depuis le serveur!');
+    } else {
+      Alert.alert('Succès', 'Messages rechargés depuis le serveur!');
+    }
+  };
+
   const unreadMessages = admin.supportMessages.filter((msg) => !msg.read);
   const readMessages = admin.supportMessages.filter((msg) => msg.read);
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>⚙️ Configuration du Support</Text>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>⚙️ Configuration du Support</Text>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.refreshButton]} 
+          onPress={handleRefreshMessages}
+        >
+          <Text style={styles.actionButtonText}>🔄 Recharger</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.passwordSection}>
         <Text style={styles.passwordLabel}>Email de Support</Text>
@@ -1594,6 +1618,19 @@ const styles = StyleSheet.create({
     color: '#8B4513',
     marginTop: 20,
     marginBottom: 15,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 15,
+  },
+  refreshButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 0,
   },
   statCard: {
     backgroundColor: '#FFF',

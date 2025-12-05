@@ -1,6 +1,7 @@
 import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { supportAPI } from '../lib/api';
 
 type AdminSession = {
   isAuthenticated: boolean;
@@ -148,13 +149,25 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
 
   const loadSupportMessages = async () => {
     try {
-      const stored = await AsyncStorage.getItem(SUPPORT_MESSAGES_KEY);
-      if (stored) {
-        const messages: SupportMessage[] = JSON.parse(stored);
-        setSupportMessages(messages);
+      // Try to load from backend first
+      const response = await supportAPI.getAllMessages();
+      if (response.success && response.messages) {
+        setSupportMessages(response.messages);
+        // Cache in localStorage as backup
+        await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(response.messages));
       }
     } catch (error) {
-      console.error('Failed to load support messages:', error);
+      console.error('Failed to load support messages from backend, trying local storage:', error);
+      // Fallback to local storage if backend fails
+      try {
+        const stored = await AsyncStorage.getItem(SUPPORT_MESSAGES_KEY);
+        if (stored) {
+          const messages: SupportMessage[] = JSON.parse(stored);
+          setSupportMessages(messages);
+        }
+      } catch (localError) {
+        console.error('Failed to load support messages from local storage:', localError);
+      }
     }
   };
 
@@ -169,49 +182,100 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
     }
   };
 
-  const addSupportMessage = useCallback(async (subject: string, message: string, userEmail: string) => {
+  const addSupportMessage = useCallback(async (subject: string, message: string, userEmail: string, userId?: string) => {
     try {
-      const newMessage: SupportMessage = {
-        id: Date.now().toString(),
-        subject,
-        message,
-        userEmail,
-        createdAt: new Date().toISOString(),
-        read: false,
-      };
-      const updatedMessages = [newMessage, ...supportMessages];
-      await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(updatedMessages));
-      setSupportMessages(updatedMessages);
-      return { success: true };
+      // Send to backend
+      const response = await supportAPI.sendMessage(subject, message, userEmail, userId);
+      
+      if (response.success) {
+        // Reload messages from backend to get updated list
+        await loadSupportMessages();
+        return { success: true };
+      } else {
+        throw new Error('Backend API returned error');
+      }
     } catch (error) {
-      console.error('Failed to add support message:', error);
-      return { success: false };
+      console.error('Failed to send support message to backend, saving locally:', error);
+      // Fallback to local storage if backend fails
+      try {
+        const newMessage: SupportMessage = {
+          id: Date.now().toString(),
+          subject,
+          message,
+          userEmail,
+          createdAt: new Date().toISOString(),
+          read: false,
+        };
+        const updatedMessages = [newMessage, ...supportMessages];
+        await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(updatedMessages));
+        setSupportMessages(updatedMessages);
+        return { success: true };
+      } catch (localError) {
+        console.error('Failed to save message locally:', localError);
+        return { success: false };
+      }
     }
   }, [supportMessages]);
 
   const markMessageAsRead = useCallback(async (messageId: string) => {
     try {
-      const updatedMessages = supportMessages.map((msg) =>
-        msg.id === messageId ? { ...msg, read: true } : msg
-      );
-      await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(updatedMessages));
-      setSupportMessages(updatedMessages);
-      return { success: true };
+      // Update on backend
+      const response = await supportAPI.markAsRead(messageId);
+      
+      if (response.success) {
+        // Update local state
+        const updatedMessages = supportMessages.map((msg) =>
+          msg.id === messageId ? { ...msg, read: true } : msg
+        );
+        setSupportMessages(updatedMessages);
+        await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(updatedMessages));
+        return { success: true };
+      } else {
+        throw new Error('Backend API returned error');
+      }
     } catch (error) {
-      console.error('Failed to mark message as read:', error);
-      return { success: false };
+      console.error('Failed to mark message as read on backend, updating locally:', error);
+      // Fallback to local update
+      try {
+        const updatedMessages = supportMessages.map((msg) =>
+          msg.id === messageId ? { ...msg, read: true } : msg
+        );
+        await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(updatedMessages));
+        setSupportMessages(updatedMessages);
+        return { success: true };
+      } catch (localError) {
+        console.error('Failed to update locally:', localError);
+        return { success: false };
+      }
     }
   }, [supportMessages]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
-      const updatedMessages = supportMessages.filter((msg) => msg.id !== messageId);
-      await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(updatedMessages));
-      setSupportMessages(updatedMessages);
-      return { success: true };
+      // Delete on backend
+      const response = await supportAPI.deleteMessage(messageId);
+      
+      if (response.success) {
+        // Update local state
+        const updatedMessages = supportMessages.filter((msg) => msg.id !== messageId);
+        setSupportMessages(updatedMessages);
+        await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(updatedMessages));
+        return { success: true };
+      } else {
+        throw new Error('Backend API returned error');
+      }
     } catch (error) {
-      console.error('Failed to delete message:', error);
-      return { success: false };
+      console.error('Failed to delete message on backend, deleting locally:', error);
+      // Fallback to local delete
+      try {
+        const updatedMessages = supportMessages.filter((msg) => msg.id !== messageId);
+        await AsyncStorage.setItem(SUPPORT_MESSAGES_KEY, JSON.stringify(updatedMessages));
+        setSupportMessages(updatedMessages);
+        return { success: true };
+      } catch (localError) {
+        console.error('Failed to delete locally:', localError);
+        return { success: false };
+      }
     }
   }, [supportMessages]);
 
@@ -224,6 +288,10 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
       console.error('Failed to update support email:', error);
       return { success: false, error: 'Erreur lors de la mise à jour de l\'email' };
     }
+  }, []);
+
+  const refreshMessages = useCallback(async () => {
+    await loadSupportMessages();
   }, []);
 
   return useMemo(() => ({
@@ -241,5 +309,6 @@ export const [AdminProvider, useAdmin] = createContextHook(() => {
     markMessageAsRead,
     deleteMessage,
     updateSupportEmail,
-  }), [isAuthenticated, isLoaded, login, logout, changePassword, tonAddress, solanaAddress, updateCryptoAddresses, supportMessages, supportEmail, addSupportMessage, markMessageAsRead, deleteMessage, updateSupportEmail]);
+    refreshMessages,
+  }), [isAuthenticated, isLoaded, login, logout, changePassword, tonAddress, solanaAddress, updateCryptoAddresses, supportMessages, supportEmail, addSupportMessage, markMessageAsRead, deleteMessage, updateSupportEmail, refreshMessages]);
 });

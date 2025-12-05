@@ -640,6 +640,61 @@ export const referralsAPI = {
   },
 };
 
+// Support Messages API
+export const supportAPI = {
+  sendMessage: async (subject: string, message: string, userEmail: string, userId?: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      messageId: string;
+    }>('/api/support/messages', {
+      method: 'POST',
+      body: JSON.stringify({ subject, message, userEmail, userId }),
+    });
+  },
+
+  getAllMessages: async () => {
+    return apiRequest<{
+      success: boolean;
+      messages: Array<{
+        id: string;
+        subject: string;
+        message: string;
+        userEmail: string;
+        userId: string | null;
+        read: boolean;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>('/api/support/messages');
+  },
+
+  getUnreadCount: async () => {
+    return apiRequest<{
+      success: boolean;
+      count: number;
+    }>('/api/support/messages/unread');
+  },
+
+  markAsRead: async (messageId: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/api/support/messages/${messageId}/read`, {
+      method: 'PATCH',
+    });
+  },
+
+  deleteMessage: async (messageId: string) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/api/support/messages/${messageId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Export default API object
 export default {
   auth: authAPI,
@@ -648,5 +703,6 @@ export default {
   leaderboard: leaderboardAPI,
   transactions: transactionsAPI,
   referrals: referralsAPI,
+  support: supportAPI,
 };
 

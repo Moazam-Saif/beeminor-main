@@ -22,7 +22,8 @@ export default function AideScreen() {
     }
 
     const userEmail = auth.currentUser?.email || 'Utilisateur anonyme';
-    const result = await admin.addSupportMessage(subject, message, userEmail);
+    const userId = auth.currentUser?.id;
+    const result = await admin.addSupportMessage(subject, message, userEmail, userId);
 
     if (result.success) {
       setSubject('');
