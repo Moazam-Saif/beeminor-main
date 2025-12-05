@@ -151,14 +151,27 @@ const PORT = process.env.PORT || 3001;
 const startServer = async () => {
   await connectDB();
   
-  // Verify email configuration
-  const { verifyEmailConfig } = require('./config/email');
-  await verifyEmailConfig();
-  
+  // Start server
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Backend server running on 0.0.0.0:${PORT}`);
     console.log(`📍 API endpoint: http://localhost:${PORT}/api`);
     console.log(`📍 Health check: http://localhost:${PORT}/`);
+    
+    // Verify email configuration in background (non-blocking)
+    const { verifyEmailConfig } = require('./config/email');
+    verifyEmailConfig().then(result => {
+      if (result.success) {
+        if (result.warning) {
+          console.log('⚠️  Email verification completed with warnings');
+        } else {
+          console.log('✅ Email configuration verified successfully');
+        }
+      } else {
+        console.log('ℹ️  Email notifications disabled - set EMAIL_USER and EMAIL_PASSWORD to enable');
+      }
+    }).catch(err => {
+      console.error('⚠️  Email verification error (non-critical):', err.message);
+    });
   });
 };
 
