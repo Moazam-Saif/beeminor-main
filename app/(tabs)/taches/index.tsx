@@ -1,5 +1,5 @@
-import { useGame } from '@/contexts/GameContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useGame } from '../../../contexts/GameContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Clipboard, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

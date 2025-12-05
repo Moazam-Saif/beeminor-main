@@ -3,13 +3,13 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { GameProvider } from '@/contexts/GameContext';
-import { LanguageProvider } from '@/contexts/LanguageContext';
-import { AdminProvider } from '@/contexts/AdminContext';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { CryptoProvider } from '@/contexts/CryptoContext';
-import { trpc, trpcClient } from '@/lib/trpc';
-import { AuthGameBridge } from '@/components/AuthGameBridge';
+import { GameProvider } from '../contexts/GameContext';
+import { LanguageProvider } from '../contexts/LanguageContext';
+import { AdminProvider } from '../contexts/AdminContext';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { CryptoProvider } from '../contexts/CryptoContext';
+import { trpc, trpcClient } from '../lib/trpc';
+import { AuthGameBridge } from '../components/AuthGameBridge';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 

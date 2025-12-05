@@ -13,10 +13,10 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Copy, Bitcoin } from 'lucide-react-native';
-import { useGame, Transaction } from '@/contexts/GameContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useAdmin } from '@/contexts/AdminContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useGame, Transaction } from '../../../contexts/GameContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useAdmin } from '../../../contexts/AdminContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 type CryptoNetwork = {
   id: string;

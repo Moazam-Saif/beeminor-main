@@ -11,12 +11,12 @@ import {
   Platform,
 } from 'react-native';
 import { Stack } from 'expo-router';
-import { useAdmin } from '@/contexts/AdminContext';
-import { useGame, BEE_TYPES } from '@/contexts/GameContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useAdmin } from '../../../contexts/AdminContext';
+import { useGame, BEE_TYPES } from '../../../contexts/GameContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { Shield, LogOut, Database, Settings, TrendingUp, Receipt, Mail } from 'lucide-react-native';
-import type { SupportMessage } from '@/contexts/AdminContext';
+import type { SupportMessage } from '../../../contexts/AdminContext';
 
 export default function AdminPanel() {
   const { isAuthenticated, login, logout } = useAdmin();

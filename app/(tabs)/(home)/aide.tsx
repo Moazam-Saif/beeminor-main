@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAdmin } from '@/contexts/AdminContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '../../../contexts/AdminContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export default function AideScreen() {
   const admin = useAdmin();

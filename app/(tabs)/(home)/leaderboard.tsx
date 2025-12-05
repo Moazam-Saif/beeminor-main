@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useGame } from '@/contexts/GameContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { useGame } from '../../../contexts/GameContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Crown, Trophy, Medal } from 'lucide-react-native';
 

@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useGame, ALVEOLE_LEVELS } from '@/contexts/GameContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useGame, ALVEOLE_LEVELS } from '../../../contexts/GameContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 const isWeb = Platform.OS === 'web';
 const MAX_WEB_WIDTH = 600;

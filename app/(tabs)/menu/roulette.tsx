@@ -1,5 +1,5 @@
-import { useGame, BEE_TYPES } from '@/contexts/GameContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useGame, BEE_TYPES } from '../../../contexts/GameContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Image, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

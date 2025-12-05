@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import { CircleDollarSign, Ticket, ArrowLeftRight, Wallet } from 'lucide-react-native';
 
 const isWeb = Platform.OS === 'web';

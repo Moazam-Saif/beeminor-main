@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useGame } from '@/contexts/GameContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useGame } from '../../../contexts/GameContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export default function CompteScreen() {
   const { honey, flowers, diamonds, bvrCoins, getTotalBees, getTotalProduction, sponsorCode, isAffiliatedToDev, referrals } = useGame();

@@ -1,5 +1,5 @@
-import { useGame } from '@/contexts/GameContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useGame } from '../../../contexts/GameContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, Modal, Alert, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
