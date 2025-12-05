@@ -23,21 +23,29 @@ const createTransporter = () => {
 
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
         user: emailUser,
         pass: emailPassword
       },
-      // Add timeout and connection settings
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000, // 10 seconds
-      socketTimeout: 10000, // 10 seconds
+      // Increased timeouts for Railway's network
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 30000, // 30 seconds
+      socketTimeout: 30000, // 30 seconds
       // TLS settings for Gmail
-      secure: false, // use STARTTLS
       requireTLS: true,
       tls: {
-        rejectUnauthorized: false // For development/production compatibility
-      }
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2'
+      },
+      // Additional Gmail-specific settings
+      pool: true, // Use pooled connections
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 1000,
+      rateLimit: 5
     });
 
     console.log('✅ Email transporter configured successfully');
@@ -96,17 +104,22 @@ const verifyEmailConfig = async () => {
   }
 
   try {
-    // Add timeout to prevent hanging
+    // Add timeout to prevent hanging - increased for Railway
     const verifyPromise = currentTransporter.verify();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Email verification timeout')), 15000)
+      setTimeout(() => reject(new Error('Email verification timeout')), 35000)
     );
     
     await Promise.race([verifyPromise, timeoutPromise]);
     console.log('✅ Email server is ready to send messages');
+    console.log('ℹ️  Make sure you are using an App Password if you have 2FA enabled on Gmail');
     return { success: true, message: 'Email configuration verified' };
   } catch (error) {
     console.error('⚠️  Email configuration verification failed (non-critical):', error.message);
+    console.log('   Possible causes:');
+    console.log('   1. Gmail requires App Password (not regular password) if 2FA is enabled');
+    console.log('   2. "Less secure app access" needs to be enabled in Gmail settings');
+    console.log('   3. Network/firewall blocking SMTP port 587');
     console.log('   Email sending will be attempted but may fail if credentials are incorrect');
     // Don't fail startup - return success with warning
     return { success: true, warning: error.message };
