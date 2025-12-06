@@ -581,10 +581,11 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
             await gameAPI.updateGameState(currentUserId, backendState);
             
-            // If server had updates, sync local state
+            // If server had updates, sync local state and update our last sync timestamp
             if (useServerFlowers) {
               setFlowers(serverState.gameState.flowers);
               setBvrCoins(serverState.gameState.bvrCoins);
+              lastSyncTimestampRef.current = serverLastUpdated; // Update sync timestamp to server's time
               console.log('🔄 Synced server-updated values - flowers:', serverState.gameState.flowers);
             }
             console.log('✅ Saved to backend successfully - Honey:', newHoney);
