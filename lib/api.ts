@@ -4,14 +4,23 @@
 
 const getBaseUrl = () => {
   // Check for explicit environment variable
-  if (process.env.EXPO_PUBLIC_API_BASE_URL) {
-    return process.env.EXPO_PUBLIC_API_BASE_URL;
+  const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+  
+  if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
+    // Valid absolute URL - remove trailing slash
+    return envUrl.replace(/\/$/, '');
   }
 
   // Default to localhost for local development
   const isDev = process.env.NODE_ENV !== "production";
   if (isDev) {
     return "http://localhost:3001";
+  }
+
+  // In production web, if window exists, we might be in a browser
+  if (typeof window !== 'undefined') {
+    console.error('API Base URL not found or invalid:', envUrl);
+    console.error('Make sure EXPO_PUBLIC_API_BASE_URL is set in Netlify dashboard');
   }
 
   throw new Error(
