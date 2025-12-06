@@ -508,6 +508,12 @@ export const [GameProvider, useGame] = createContextHook(() => {
     newYearStartDate: string,
     newAllUsersLeaderboard: LeaderboardUser[]
   ) => {
+    // CRITICAL: Check block FIRST before any processing
+    if (currentUserId && Date.now() < blockSaveUntilRef.current) {
+      console.log('🚫 Save blocked - critical operation in progress');
+      return;
+    }
+    
     try {
       const state: GameState = {
         honey: newHoney,
@@ -536,12 +542,6 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
       // Sync to backend if user is authenticated (debounced)
       if (currentUserId) {
-        // Check if saves are blocked (after admin actions)
-        if (Date.now() < blockSaveUntilRef.current) {
-          console.log('🚫 Save blocked - admin action in progress');
-          return;
-        }
-        
         // Clear existing timeout
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
