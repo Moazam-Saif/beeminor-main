@@ -536,12 +536,24 @@ export const [GameProvider, useGame] = createContextHook(() => {
           isSavingRef.current = true;
           try {
             console.log('💾 Saving to backend - Honey:', newHoney);
+            // First, get current state from backend to check for server-side updates
+            const serverState = await gameAPI.getGameState(currentUserId);
+            
+            // Check if server was updated more recently (e.g., admin approved deposit)
+            const serverLastUpdated = serverState.success && (serverState.gameState as any).lastUpdated 
+              ? new Date((serverState.gameState as any).lastUpdated).getTime() 
+              : 0;
+            const localLastSync = lastSyncTimestampRef.current || 0;
+            
+            // If server updated after our last sync, use server values for flowers/bvrCoins
+            const useServerFlowers = serverState.success && serverLastUpdated > localLastSync;
+            
             const backendState = {
               honey: newHoney,
-              flowers: newFlowers,
+              flowers: useServerFlowers ? serverState.gameState.flowers : newFlowers,
               diamonds: newDiamonds,
               tickets: newTickets,
-              bvrCoins: newBvrCoins,
+              bvrCoins: useServerFlowers ? serverState.gameState.bvrCoins : newBvrCoins,
               bees: newBees,
               alveoles: newAlveoles,
               invitedFriends: newInvitedFriends,
@@ -568,6 +580,13 @@ export const [GameProvider, useGame] = createContextHook(() => {
             };
 
             await gameAPI.updateGameState(currentUserId, backendState);
+            
+            // If server had updates, sync local state
+            if (useServerFlowers) {
+              setFlowers(serverState.gameState.flowers);
+              setBvrCoins(serverState.gameState.bvrCoins);
+              console.log('🔄 Synced server-updated values - flowers:', serverState.gameState.flowers);
+            }
             console.log('✅ Saved to backend successfully - Honey:', newHoney);
             lastSyncTimestampRef.current = Date.now();
           } catch (error) {
