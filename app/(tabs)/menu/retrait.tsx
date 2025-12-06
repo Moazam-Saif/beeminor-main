@@ -84,6 +84,9 @@ export default function RetraitScreen() {
       const fees = calculateFees(usdAmount);
       const received = calculateReceived(usdAmount);
       
+      // CRITICAL: Block auto-saves BEFORE showing dialog
+      game.blockSaves(10000); // Block for 10 seconds
+      
       // Use window.confirm for web compatibility
       const confirmed = window.confirm(
         `Vous allez retirer ${amount.toLocaleString()} diamants (${usdAmount.toFixed(2)}$)\n` +
@@ -126,6 +129,9 @@ export default function RetraitScreen() {
       }
 
       console.log('Showing confirmation dialog');
+      
+      // CRITICAL: Block auto-saves BEFORE showing dialog
+      game.blockSaves(10000); // Block for 10 seconds
       
       // Use window.confirm for web compatibility
       const confirmed = window.confirm(

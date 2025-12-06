@@ -1160,17 +1160,20 @@ export const [GameProvider, useGame] = createContextHook(() => {
     });
   }, []);
 
+  // Function to block saves before critical operations
+  const blockSaves = useCallback((durationMs: number = 5000) => {
+    blockSaveUntilRef.current = Date.now() + durationMs;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    console.log(`🔒 Saves blocked for ${durationMs}ms`);
+  }, []);
+
   const submitWithdrawal = useCallback(async (transaction: Omit<Transaction, 'id' | 'status' | 'createdAt'>) => {
     // Create withdrawal via backend
     try {
       console.log('🟣 submitWithdrawal called with:', transaction);
-      
-      // CRITICAL: Block saves during withdrawal submission
-      blockSaveUntilRef.current = Date.now() + 5000;
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = null;
-      }
       
       // Determine currency and amount based on transaction type
       const isBVR = transaction.type === 'withdrawal_bvr';
@@ -1441,6 +1444,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
     updateLeaderboard,
     setUserId, // Expose setUserId to connect with AuthContext
     refreshGameState, // Manual refresh for cross-device sync
+    blockSaves, // Block auto-saves before critical operations
   }), [
     honey,
     flowers,
@@ -1488,5 +1492,6 @@ export const [GameProvider, useGame] = createContextHook(() => {
     setUserId,
     resetGameState, // Add resetGameState for logout functionality
     refreshGameState,
+    blockSaves,
   ]);
 });
