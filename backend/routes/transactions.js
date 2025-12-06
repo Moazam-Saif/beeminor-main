@@ -246,27 +246,43 @@ router.put('/:id/status', async (req, res) => {
     // AFTER transaction is saved, update user's GameState
     // If deposit is being completed, add flowers to user account
     if (transaction.type === 'deposit_crypto' && status === 'completed') {
-      console.log('=== DEPOSIT COMPLETION DEBUG ===');
+      console.log('\n\n🔴🔴🔴 DEPOSIT COMPLETION DEBUG 🔴🔴🔴');
+      console.log('Transaction ID:', transaction._id);
       console.log('Transaction type:', transaction.type);
-      console.log('Flowers to add:', transaction.flowersAmount);
+      console.log('Transaction status:', transaction.status);
+      console.log('Flowers to add (flowersAmount):', transaction.flowersAmount);
+      console.log('User ID:', transaction.userId);
       
       const gameState = await GameState.findOne({ userId: transaction.userId });
       if (gameState) {
+        console.log('✅ GameState FOUND');
         console.log('Before deposit - flowers:', gameState.flowers);
-        console.log('UserID from transaction:', transaction.userId);
-        console.log('UserID from gameState:', gameState.userId);
+        console.log('Before deposit - bvrCoins:', gameState.bvrCoins);
+        console.log('GameState _id:', gameState._id);
+        console.log('GameState userId:', gameState.userId);
         
         // Add flowers based on USD deposit
-        gameState.flowers += transaction.flowersAmount || 0;
+        const flowersToAdd = transaction.flowersAmount || 0;
+        console.log('Adding flowers:', flowersToAdd);
+        gameState.flowers += flowersToAdd;
         gameState.lastUpdated = new Date();
         
+        console.log('After addition (before save) - flowers:', gameState.flowers);
+        
         const savedState = await gameState.save();
-        console.log('After deposit - flowers:', savedState.flowers);
-        console.log('GameState _id:', savedState._id);
-        console.log('=== DEPOSIT COMPLETE ===');
+        
+        console.log('✅ GameState SAVED');
+        console.log('After save - flowers:', savedState.flowers);
+        console.log('After save - lastUpdated:', savedState.lastUpdated);
+        console.log('🔴🔴🔴 DEPOSIT COMPLETE 🔴🔴🔴\n\n');
       } else {
-        console.log('ERROR: GameState not found for deposit');
+        console.log('❌ ERROR: GameState not found for deposit');
         console.log('Looking for userId:', transaction.userId);
+        console.log('Searching with filter:', { userId: transaction.userId });
+        
+        // Try to find any GameStates to debug
+        const allStates = await GameState.find().limit(3);
+        console.log('Sample GameStates in DB:', allStates.map(s => ({ id: s._id, userId: s.userId, flowers: s.flowers })));
       }
     }
 

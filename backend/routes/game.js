@@ -36,7 +36,8 @@ router.get('/:userId', async (req, res) => {
         hasPendingFunds: gameState.hasPendingFunds,
         transactions: gameState.transactions,
         diamondsThisYear: gameState.diamondsThisYear,
-        yearStartDate: gameState.yearStartDate
+        yearStartDate: gameState.yearStartDate,
+        lastUpdated: gameState.lastUpdated || new Date()
       }
     });
   } catch (error) {
@@ -55,6 +56,9 @@ router.get('/:userId', async (req, res) => {
 router.put('/:userId', async (req, res) => {
   try {
     const updates = req.body;
+    console.log('\n\n🟦🟦🟦 PUT /api/game/:userId 🟦🟦🟦');
+    console.log('User ID:', req.params.userId);
+    console.log('Updates:', JSON.stringify(updates, null, 2));
     
     const gameState = await GameState.findOneAndUpdate(
       { userId: req.params.userId },
@@ -64,6 +68,12 @@ router.put('/:userId', async (req, res) => {
       },
       { new: true, upsert: true }
     );
+    
+    console.log('Updated GameState:');
+    console.log('  - Flowers:', gameState.flowers);
+    console.log('  - BVRCoins:', gameState.bvrCoins);
+    console.log('  - LastUpdated:', gameState.lastUpdated);
+    console.log('🟦🟦🟦 PUT COMPLETE 🟦🟦🟦\n\n');
 
     res.json({
       success: true,
@@ -84,7 +94,8 @@ router.put('/:userId', async (req, res) => {
         hasPendingFunds: gameState.hasPendingFunds,
         transactions: gameState.transactions,
         diamondsThisYear: gameState.diamondsThisYear,
-        yearStartDate: gameState.yearStartDate
+        yearStartDate: gameState.yearStartDate,
+        lastUpdated: gameState.lastUpdated
       }
     });
   } catch (error) {
