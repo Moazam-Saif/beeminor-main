@@ -48,6 +48,35 @@ const transactionSchema = new mongoose.Schema({
   processedAt: {
     type: Date,
     default: null
+  },
+  // Fields for deposit_crypto transactions
+  flowersAmount: {
+    type: Number,
+    default: null
+  },
+  network: {
+    type: String,
+    default: null
+  },
+  walletAddress: {
+    type: String,
+    default: null
+  },
+  usdAmount: {
+    type: Number,
+    default: null
+  },
+  fees: {
+    type: Number,
+    default: null
+  },
+  receivedAmount: {
+    type: Number,
+    default: null
+  },
+  userEmail: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true
