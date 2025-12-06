@@ -1129,7 +1129,14 @@ export const [GameProvider, useGame] = createContextHook(() => {
         amount: amount,
         currency: currency,
         cryptoAddress: transaction.walletAddress,
-        type: transaction.type
+        type: transaction.type,
+        // Include deposit-specific fields if present
+        ...(transaction.flowersAmount !== undefined && { flowersAmount: transaction.flowersAmount }),
+        ...(transaction.network && { network: transaction.network }),
+        ...(transaction.usdAmount !== undefined && { usdAmount: transaction.usdAmount }),
+        ...(transaction.fees !== undefined && { fees: transaction.fees }),
+        ...(transaction.receivedAmount !== undefined && { receivedAmount: transaction.receivedAmount }),
+        ...(transaction.userEmail && { userEmail: transaction.userEmail }),
       });
 
       if (response.success) {

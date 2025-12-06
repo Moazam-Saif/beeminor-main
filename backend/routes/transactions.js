@@ -91,7 +91,7 @@ router.post('/withdraw', async (req, res) => {
     await gameState.save();
 
     // Create withdrawal transaction
-    const transaction = new Transaction({
+    const transactionData = {
       userId,
       type: type || 'withdrawal',
       amount,
@@ -99,7 +99,18 @@ router.post('/withdraw', async (req, res) => {
       address: address || null,
       cryptoAddress: cryptoAddress || null,
       status: 'pending'
-    });
+    };
+
+    // Add deposit-specific fields if provided
+    if (req.body.flowersAmount !== undefined) transactionData.flowersAmount = req.body.flowersAmount;
+    if (req.body.network) transactionData.network = req.body.network;
+    if (req.body.walletAddress) transactionData.walletAddress = req.body.walletAddress;
+    if (req.body.usdAmount !== undefined) transactionData.usdAmount = req.body.usdAmount;
+    if (req.body.fees !== undefined) transactionData.fees = req.body.fees;
+    if (req.body.receivedAmount !== undefined) transactionData.receivedAmount = req.body.receivedAmount;
+    if (req.body.userEmail) transactionData.userEmail = req.body.userEmail;
+
+    const transaction = new Transaction(transactionData);
 
     await transaction.save();
 
