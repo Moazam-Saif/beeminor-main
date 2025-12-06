@@ -1209,9 +1209,12 @@ export const [GameProvider, useGame] = createContextHook(() => {
           )
         );
         
-        // Refresh game state from backend
+        // Refresh game state from backend with force=true to bypass debounce checks
+        // This ensures we get the updated flowers/bvrCoins immediately
         if (currentUserId) {
-          await syncGameStateFromBackend(currentUserId);
+          // Wait a brief moment for backend to fully process the approval
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await syncGameStateFromBackend(currentUserId, true);
         }
       }
     } catch (error) {
@@ -1256,9 +1259,12 @@ export const [GameProvider, useGame] = createContextHook(() => {
           )
         );
         
-        // Refresh game state from backend (will include refunded flowers)
+        // Refresh game state from backend with force=true to bypass debounce checks
+        // This ensures we get the refunded flowers/bvrCoins immediately
         if (currentUserId) {
-          await syncGameStateFromBackend(currentUserId);
+          // Wait a brief moment for backend to fully process the rejection/refund
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await syncGameStateFromBackend(currentUserId, true);
         }
       }
     } catch (error) {
