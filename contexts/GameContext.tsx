@@ -175,6 +175,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef<boolean>(false); // Track if save is in progress
+  const isSyncingFromBackendRef = useRef<boolean>(false); // Track if currently syncing FROM backend
   const lastSyncTimestampRef = useRef<number>(0); // Track last successful sync
 
   useEffect(() => {
@@ -217,6 +218,9 @@ export const [GameProvider, useGame] = createContextHook(() => {
         return;
       }
 
+      // Set flag to prevent auto-save during sync
+      isSyncingFromBackendRef.current = true;
+
       const response = await gameAPI.getGameState(userId);
       if (response.success && response.gameState) {
         const state = response.gameState;
@@ -241,12 +245,17 @@ export const [GameProvider, useGame] = createContextHook(() => {
           setAlveoles(state.alveoles);
         }
         lastSyncTimestampRef.current = Date.now();
-        console.log('✅ Synced from backend - Honey:', state.honey);
+        console.log('✅ Synced from backend - Flowers:', state.flowers);
       }
     } catch (error) {
       console.error('Failed to sync game state from backend:', error);
       // Fallback to local storage if backend fails
       console.log('Falling back to local storage...');
+    } finally {
+      // Clear the sync flag after all state updates complete
+      setTimeout(() => {
+        isSyncingFromBackendRef.current = false;
+      }, 100);
     }
   }, []);
 
@@ -644,6 +653,14 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
   useEffect(() => {
     if (!isLoaded) return;
+    
+    // Skip auto-save if we're currently syncing FROM backend
+    // This prevents overwriting server updates with stale local state
+    if (isSyncingFromBackendRef.current) {
+      console.log('⏭️ Skipping auto-save - syncing from backend');
+      return;
+    }
+    
     saveGameState(
       honey,
       flowers,
@@ -1192,6 +1209,13 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
   const approveTransaction = useCallback(async (transactionId: string, sponsorUserEmail?: string) => {
     try {
+      // CRITICAL: Cancel any pending auto-save before approving
+      // This prevents stale local data from overwriting the backend update
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      
       // Call backend to approve transaction
       const response = await transactionsAPI.updateTransactionStatus(transactionId, 'completed', 'Approved by admin');
       
@@ -1242,6 +1266,13 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
   const rejectTransaction = useCallback(async (transactionId: string) => {
     try {
+      // CRITICAL: Cancel any pending auto-save before rejecting
+      // This prevents stale local data from overwriting the backend update
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      
       // Call backend to reject transaction (will refund flowers if withdrawal)
       const response = await transactionsAPI.updateTransactionStatus(transactionId, 'cancelled', 'Rejected by admin');
       
