@@ -176,6 +176,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef<boolean>(false); // Track if save is in progress
   const isSyncingFromBackendRef = useRef<boolean>(false); // Track if currently syncing FROM backend
+  const blockSaveUntilRef = useRef<number>(0); // Block all saves until this timestamp
   const lastSyncTimestampRef = useRef<number>(0); // Track last successful sync
 
   useEffect(() => {
@@ -535,6 +536,12 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
       // Sync to backend if user is authenticated (debounced)
       if (currentUserId) {
+        // Check if saves are blocked (after admin actions)
+        if (Date.now() < blockSaveUntilRef.current) {
+          console.log('🚫 Save blocked - admin action in progress');
+          return;
+        }
+        
         // Clear existing timeout
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
@@ -1209,8 +1216,11 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
   const approveTransaction = useCallback(async (transactionId: string, sponsorUserEmail?: string) => {
     try {
-      // CRITICAL: Cancel any pending auto-save before approving
-      // This prevents stale local data from overwriting the backend update
+      // CRITICAL: Block ALL saves for 5 seconds
+      blockSaveUntilRef.current = Date.now() + 5000;
+      console.log('🔒 Blocking saves for 5 seconds');
+      
+      // Cancel any pending auto-save
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
@@ -1239,6 +1249,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
           // Wait a brief moment for backend to fully process the approval
           await new Promise(resolve => setTimeout(resolve, 100));
           await syncGameStateFromBackend(currentUserId, true);
+          console.log('🔓 Save block will expire in 5 seconds');
         }
       }
     } catch (error) {
@@ -1266,8 +1277,11 @@ export const [GameProvider, useGame] = createContextHook(() => {
 
   const rejectTransaction = useCallback(async (transactionId: string) => {
     try {
-      // CRITICAL: Cancel any pending auto-save before rejecting
-      // This prevents stale local data from overwriting the backend update
+      // CRITICAL: Block ALL saves for 5 seconds
+      blockSaveUntilRef.current = Date.now() + 5000;
+      console.log('🔒 Blocking saves for 5 seconds');
+      
+      // Cancel any pending auto-save
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
@@ -1296,6 +1310,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
           // Wait a brief moment for backend to fully process the rejection/refund
           await new Promise(resolve => setTimeout(resolve, 100));
           await syncGameStateFromBackend(currentUserId, true);
+          console.log('🔓 Save block will expire in 5 seconds');
         }
       }
     } catch (error) {
