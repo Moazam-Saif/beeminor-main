@@ -233,10 +233,19 @@ router.put('/:id/status', async (req, res) => {
     let refundedAmount = 0;
     let refundedCurrency = '';
 
+    // Update transaction status first
+    transaction.status = status;
+    transaction.adminNotes = adminNotes || null;
+    // Set processedAt when transaction is completed or cancelled
+    if (status === 'completed' || status === 'cancelled') {
+      transaction.processedAt = new Date();
+    }
+    await transaction.save();
+    console.log('Transaction status updated to:', status);
+
+    // AFTER transaction is saved, update user's GameState
     // If deposit is being completed, add flowers to user account
-    if (transaction.type === 'deposit_crypto' && 
-        transaction.status === 'pending' && 
-        status === 'completed') {
+    if (transaction.type === 'deposit_crypto' && status === 'completed') {
       console.log('=== DEPOSIT COMPLETION DEBUG ===');
       console.log('Transaction type:', transaction.type);
       console.log('Flowers to add:', transaction.flowersAmount);
@@ -244,28 +253,25 @@ router.put('/:id/status', async (req, res) => {
       const gameState = await GameState.findOne({ userId: transaction.userId });
       if (gameState) {
         console.log('Before deposit - flowers:', gameState.flowers);
+        console.log('UserID from transaction:', transaction.userId);
+        console.log('UserID from gameState:', gameState.userId);
         
         // Add flowers based on USD deposit
         gameState.flowers += transaction.flowersAmount || 0;
+        gameState.lastUpdated = new Date();
         
-        try {
-          const savedState = await gameState.save();
-          console.log('After deposit - flowers:', gameState.flowers);
-          console.log('GameState saved successfully, new flowers:', savedState.flowers);
-          console.log('=== DEPOSIT COMPLETE ===');
-        } catch (saveError) {
-          console.error('ERROR: Failed to save gameState after deposit:', saveError);
-          throw saveError; // Rethrow to prevent transaction status update
-        }
+        const savedState = await gameState.save();
+        console.log('After deposit - flowers:', savedState.flowers);
+        console.log('GameState _id:', savedState._id);
+        console.log('=== DEPOSIT COMPLETE ===');
       } else {
         console.log('ERROR: GameState not found for deposit');
-        throw new Error('GameState not found for deposit');
+        console.log('Looking for userId:', transaction.userId);
       }
     }
 
     // If withdrawal is being cancelled/failed, refund the resources
     if ((transaction.type === 'withdrawal' || transaction.type === 'withdrawal_diamond' || transaction.type === 'withdrawal_bvr') && 
-        transaction.status === 'pending' && 
         (status === 'cancelled' || status === 'failed')) {
       console.log('=== REFUND DEBUG ===');
       console.log('Transaction type:', transaction.type);
@@ -289,6 +295,7 @@ router.put('/:id/status', async (req, res) => {
           console.log('Refunding flowers:', transaction.amount);
         }
         
+        gameState.lastUpdated = new Date();
         await gameState.save();
         console.log('After refund - bvrCoins:', gameState.bvrCoins, 'flowers:', gameState.flowers);
         console.log('=== REFUND COMPLETE ===');
@@ -296,14 +303,6 @@ router.put('/:id/status', async (req, res) => {
         console.log('ERROR: GameState not found for refund');
       }
     }
-
-    transaction.status = status;
-    transaction.adminNotes = adminNotes || null;
-    // Set processedAt when transaction is completed or cancelled
-    if (status === 'completed' || status === 'cancelled') {
-      transaction.processedAt = new Date();
-    }
-    await transaction.save();
 
     // No email notifications on approval/rejection - only on withdrawal request submission
 
