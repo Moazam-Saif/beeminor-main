@@ -248,11 +248,18 @@ router.put('/:id/status', async (req, res) => {
         // Add flowers based on USD deposit
         gameState.flowers += transaction.flowersAmount || 0;
         
-        await gameState.save();
-        console.log('After deposit - flowers:', gameState.flowers);
-        console.log('=== DEPOSIT COMPLETE ===');
+        try {
+          const savedState = await gameState.save();
+          console.log('After deposit - flowers:', gameState.flowers);
+          console.log('GameState saved successfully, new flowers:', savedState.flowers);
+          console.log('=== DEPOSIT COMPLETE ===');
+        } catch (saveError) {
+          console.error('ERROR: Failed to save gameState after deposit:', saveError);
+          throw saveError; // Rethrow to prevent transaction status update
+        }
       } else {
         console.log('ERROR: GameState not found for deposit');
+        throw new Error('GameState not found for deposit');
       }
     }
 
