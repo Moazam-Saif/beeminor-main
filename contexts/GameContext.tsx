@@ -1163,11 +1163,21 @@ export const [GameProvider, useGame] = createContextHook(() => {
   const submitWithdrawal = useCallback(async (transaction: Omit<Transaction, 'id' | 'status' | 'createdAt'>) => {
     // Create withdrawal via backend
     try {
+      console.log('🟣 submitWithdrawal called with:', transaction);
+      
+      // CRITICAL: Block saves during withdrawal submission
+      blockSaveUntilRef.current = Date.now() + 5000;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      
       // Determine currency and amount based on transaction type
       const isBVR = transaction.type === 'withdrawal_bvr';
       const currency = isBVR ? 'BVR' : 'USD';
       const amount = transaction.amount;
       
+      console.log('🟣 Calling backend withdraw API...');
       const response = await transactionsAPI.createWithdrawal({
         userId: transaction.userId,
         amount: amount,
@@ -1183,6 +1193,8 @@ export const [GameProvider, useGame] = createContextHook(() => {
         ...(transaction.userEmail && { userEmail: transaction.userEmail }),
       });
 
+      console.log('🟣 Backend response:', response);
+
       if (response.success) {
         // Update local state with backend response
         const newTransaction: Transaction = {
@@ -1193,15 +1205,20 @@ export const [GameProvider, useGame] = createContextHook(() => {
         };
         setTransactions((current) => [newTransaction, ...current]);
         
+        console.log('🟣 Syncing game state from backend...');
         // Sync game state to get updated balance (flowers or bvrCoins)
         if (currentUserId) {
-          await syncGameStateFromBackend(currentUserId);
+          await new Promise(resolve => setTimeout(resolve, 200));
+          await syncGameStateFromBackend(currentUserId, true);
         }
+        console.log('🟣 Withdrawal complete, save block expires in 5s');
         
         return newTransaction;
+      } else {
+        console.error('🟣 Backend returned success: false');
       }
     } catch (error) {
-      console.error('Withdrawal submission failed:', error);
+      console.error('🟣 Withdrawal submission failed:', error);
       // Fallback to local-only for backwards compatibility
       const newTransaction: Transaction = {
         ...transaction,
