@@ -1175,6 +1175,16 @@ export const [GameProvider, useGame] = createContextHook(() => {
     try {
       console.log('🟣 submitWithdrawal called with:', transaction);
       
+      // CRITICAL: Block all saves for the entire withdrawal process
+      blockSaveUntilRef.current = Date.now() + 15000; // 15 seconds
+      console.log('🔒 Blocking saves for 15 seconds during withdrawal');
+      
+      // Cancel any pending auto-save
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      
       // Determine currency and amount based on transaction type
       const isBVR = transaction.type === 'withdrawal_bvr';
       const currency = isBVR ? 'BVR' : 'USD';
@@ -1214,7 +1224,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
           await new Promise(resolve => setTimeout(resolve, 200));
           await syncGameStateFromBackend(currentUserId, true);
         }
-        console.log('🟣 Withdrawal complete, save block expires in 5s');
+        console.log('🟣 Withdrawal complete, save block expires in 15s');
         
         return newTransaction;
       } else {
