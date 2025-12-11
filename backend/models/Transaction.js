@@ -54,6 +54,10 @@ const transactionSchema = new mongoose.Schema({
     type: Number,
     default: null
   },
+  ticketsAmount: {
+    type: Number,
+    default: null
+  },
   network: {
     type: String,
     default: null

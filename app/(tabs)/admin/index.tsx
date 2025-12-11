@@ -782,8 +782,18 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
         return '🐝 Retrait BVR';
       case 'deposit_crypto':
         return '💰 Dépôt Crypto';
+      case 'deposit':
+        return '💰 Dépôt';
+      case 'referral_bonus':
+        return '🎁 Bonus Parrainage';
+      case 'referral_deposit':
+        return '🎁 Dépôt Parrainage';
+      case 'transfer_received':
+        return '💸 Transfert Reçu';
+      case 'transfer_sent':
+        return '💸 Transfert Envoyé';
       default:
-        return type;
+        return type || 'Transaction';
     }
   };
 

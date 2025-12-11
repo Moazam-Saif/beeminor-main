@@ -21,15 +21,9 @@ const getBaseUrl = () => {
     return "http://localhost:3001";
   }
 
-  // In production web, if window exists, we might be in a browser
-  if (typeof window !== 'undefined') {
-    console.error('tRPC Base URL not found or invalid:', envUrl);
-    console.error('Make sure EXPO_PUBLIC_API_BASE_URL is set in Netlify dashboard');
-  }
-
-  throw new Error(
-    "No base url found, please set EXPO_PUBLIC_API_BASE_URL"
-  );
+  // Production fallback - hardcoded Railway URL
+  console.log('Using production fallback URL for tRPC');
+  return "https://beeminor-main-production-b904.up.railway.app";
 };
 
 export const trpcClient = trpc.createClient({
