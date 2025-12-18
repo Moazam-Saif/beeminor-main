@@ -56,9 +56,9 @@ router.get('/:userId', async (req, res) => {
 router.put('/:userId', async (req, res) => {
   try {
     const updates = req.body;
-    console.log('\n\n🟦🟦🟦 PUT /api/game/:userId 🟦🟦🟦');
-    console.log('User ID:', req.params.userId);
-    console.log('Updates:', JSON.stringify(updates, null, 2));
+    // console.log('\n\n🟦🟦🟦 PUT /api/game/:userId 🟦🟦🟦');
+    // console.log('User ID:', req.params.userId);
+    // console.log('Updates:', JSON.stringify(updates, null, 2));
     
     const gameState = await GameState.findOneAndUpdate(
       { userId: req.params.userId },
@@ -69,11 +69,11 @@ router.put('/:userId', async (req, res) => {
       { new: true, upsert: true }
     );
     
-    console.log('Updated GameState:');
-    console.log('  - Flowers:', gameState.flowers);
-    console.log('  - BVRCoins:', gameState.bvrCoins);
-    console.log('  - LastUpdated:', gameState.lastUpdated);
-    console.log('🟦🟦🟦 PUT COMPLETE 🟦🟦🟦\n\n');
+    // console.log('Updated GameState:');
+    // console.log('  - Flowers:', gameState.flowers);
+    // console.log('  - BVRCoins:', gameState.bvrCoins);
+    // console.log('  - LastUpdated:', gameState.lastUpdated);
+    // console.log('🟦🟦🟦 PUT COMPLETE 🟦🟦🟦\n\n');
 
     res.json({
       success: true,
@@ -971,7 +971,7 @@ router.post('/:userId/purchase-flowers', async (req, res) => {
       type: 'flower_purchase',
       amount: priceUSD,
       currency: 'USD',
-      status: 'completed',
+      status: 'pending', // Set status to pending for admin approval
       address: paymentMethod || '',
       notes: `Purchased ${amount} flowers, earned ${ticketsEarned} tickets`
     });
@@ -979,7 +979,7 @@ router.post('/:userId/purchase-flowers', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Flowers purchased successfully',
+      message: 'Flowers purchase request submitted for approval',
       purchase: {
         flowers: amount,
         price: priceUSD,
@@ -998,10 +998,6 @@ router.post('/:userId/purchase-flowers', async (req, res) => {
         claimedMissions: gameState.claimedMissions,
         referrals: gameState.referrals,
         totalReferralEarnings: gameState.totalReferralEarnings,
-        hasPendingFunds: gameState.hasPendingFunds,
-        transactions: [], // Transactions stored in separate Transaction model
-        diamondsThisYear: gameState.diamondsThisYear,
-        yearStartDate: gameState.yearStartDate
       }
     });
   } catch (error) {

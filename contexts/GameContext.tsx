@@ -1170,81 +1170,84 @@ export const [GameProvider, useGame] = createContextHook(() => {
     console.log(`🔒 Saves blocked for ${durationMs}ms`);
   }, []);
 
-  const submitWithdrawal = useCallback(async (transaction: Omit<Transaction, 'id' | 'status' | 'createdAt'>) => {
-    // Create withdrawal via backend
-    try {
-      console.log('🟣 submitWithdrawal called with:', transaction);
-      
-      // CRITICAL: Block all saves for the entire withdrawal process
-      blockSaveUntilRef.current = Date.now() + 15000; // 15 seconds
-      console.log('🔒 Blocking saves for 15 seconds during withdrawal');
-      
-      // Cancel any pending auto-save
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = null;
-      }
-      
-      // Determine currency and amount based on transaction type
-      const isBVR = transaction.type === 'withdrawal_bvr';
-      const currency = isBVR ? 'BVR' : 'USD';
-      const amount = transaction.amount;
-      
-      console.log('🟣 Calling backend withdraw API...');
-      const response = await transactionsAPI.createWithdrawal({
-        userId: transaction.userId,
-        amount: amount,
-        currency: currency,
-        cryptoAddress: transaction.walletAddress,
-        type: transaction.type,
-        // Include deposit-specific fields if present
-        ...(transaction.flowersAmount !== undefined && { flowersAmount: transaction.flowersAmount }),
-        ...(transaction.network && { network: transaction.network }),
-        ...(transaction.usdAmount !== undefined && { usdAmount: transaction.usdAmount }),
-        ...(transaction.fees !== undefined && { fees: transaction.fees }),
-        ...(transaction.receivedAmount !== undefined && { receivedAmount: transaction.receivedAmount }),
-        ...(transaction.userEmail && { userEmail: transaction.userEmail }),
-      });
+  // Function to unblock saves after critical operations
+  const unblockSaves = useCallback(() => {
+    blockSaveUntilRef.current = Date.now();
+    console.log('🔓 Saves unblocked');
+  }, []);
 
-      console.log('🟣 Backend response:', response);
-
-      if (response.success) {
-        // Update local state with backend response
-        const newTransaction: Transaction = {
-          ...transaction,
-          id: response.transaction.id,
-          status: 'pending',
-          createdAt: response.transaction.createdAt,
-        };
-        setTransactions((current) => [newTransaction, ...current]);
-        
-        console.log('🟣 Syncing game state from backend...');
-        // Sync game state to get updated balance (flowers or bvrCoins)
-        if (currentUserId) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-          await syncGameStateFromBackend(currentUserId, true);
-        }
-        console.log('🟣 Withdrawal complete, save block expires in 15s');
-        
-        return newTransaction;
-      } else {
-        console.error('🟣 Backend returned success: false');
-      }
-    } catch (error) {
-      console.error('🟣 Withdrawal submission failed:', error);
-      // Fallback to local-only for backwards compatibility
-      const newTransaction: Transaction = {
-        ...transaction,
-        id: `txn_${Date.now()}`,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-      };
-      setTransactions((current) => [newTransaction, ...current]);
-      return newTransaction;
+  const forceSyncAfterTransaction = useCallback(async () => {
+    if (currentUserId) {
+      console.log('🔄 Forcing sync after transaction...');
+      await syncGameStateFromBackend(currentUserId, true);
     }
   }, [currentUserId, syncGameStateFromBackend]);
 
-  const approveTransaction = useCallback(async (transactionId: string, sponsorUserEmail?: string) => {
+  const submitWithdrawal = useCallback(async (transaction: Omit<Transaction, 'id' | 'status' | 'createdAt'>) => {
+    // Create withdrawal via backend
+    console.log('🟣 submitWithdrawal called with:', transaction);
+
+    // CRITICAL: Block all saves for the entire withdrawal process
+    blockSaveUntilRef.current = Date.now() + 15000; // 15 seconds
+    console.log('🔒 Blocking saves for 15 seconds during withdrawal');
+
+    // Cancel any pending auto-save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    // Determine currency and amount based on transaction type
+    const isBVR = transaction.type === 'withdrawal_bvr';
+    const currency = isBVR ? 'BVR' : 'USD';
+    const amount = transaction.amount;
+
+    // Prepare payload for backend
+    const payload = {
+      userId: transaction.userId,
+      amount: amount,
+      currency: currency,
+      cryptoAddress: transaction.walletAddress,
+      type: transaction.type,
+      ...(transaction.flowersAmount !== undefined && { flowersAmount: transaction.flowersAmount }),
+      ...(transaction.network && { network: transaction.network }),
+      ...(transaction.usdAmount !== undefined && { usdAmount: transaction.usdAmount }),
+      ...(transaction.fees !== undefined && { fees: transaction.fees }),
+      ...(transaction.receivedAmount !== undefined && { receivedAmount: transaction.receivedAmount }),
+      ...(transaction.userEmail && { userEmail: transaction.userEmail }),
+    };
+    console.log('🟣 Withdrawal payload to backend:', payload);
+
+    const response = await transactionsAPI.createWithdrawal(payload);
+
+    console.log('🟣 Backend response:', response);
+
+    if (!response.success) {
+      console.error('🟣 Backend returned success: false');
+      throw new Error(response.message || 'Withdrawal submission failed');
+    }
+
+    // Update local state with backend response
+    const newTransaction: Transaction = {
+      ...transaction,
+      id: response.transaction.id,
+      status: 'pending',
+      createdAt: response.transaction.createdAt,
+    };
+    setTransactions((current) => [newTransaction, ...current]);
+    
+    console.log('🟣 Syncing game state from backend...');
+    // Sync game state to get updated balance (flowers or bvrCoins)
+    if (currentUserId) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      await syncGameStateFromBackend(currentUserId, true);
+    }
+    console.log('🟣 Withdrawal complete, save block expires in 15s');
+    
+    return newTransaction;
+  }, [currentUserId, syncGameStateFromBackend]);
+
+  const approveTransaction = useCallback(async (transactionId: string) => {
     try {
       // CRITICAL: Block ALL saves for 5 seconds
       blockSaveUntilRef.current = Date.now() + 5000;
@@ -1455,6 +1458,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
     setUserId, // Expose setUserId to connect with AuthContext
     refreshGameState, // Manual refresh for cross-device sync
     blockSaves, // Block auto-saves before critical operations
+    unblockSaves, // Unblock saves after critical operations
   }), [
     honey,
     flowers,
@@ -1503,5 +1507,6 @@ export const [GameProvider, useGame] = createContextHook(() => {
     resetGameState, // Add resetGameState for logout functionality
     refreshGameState,
     blockSaves,
+    unblockSaves,
   ]);
 });

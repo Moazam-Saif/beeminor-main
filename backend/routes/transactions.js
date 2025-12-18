@@ -7,6 +7,28 @@ const {
   sendWithdrawalSubmittedNotification
 } = require('../services/notificationService');
 
+// In-memory lock implementation
+const locks = new Map();
+
+const acquireLock = async (lockKey, timeoutMs = 5000) => {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeoutMs) {
+    if (!locks.has(lockKey)) {
+      locks.set(lockKey, Date.now());
+      return true;
+    }
+    // Wait a bit before retrying
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  
+  return false; // Failed to acquire lock within timeout
+};
+
+const releaseLock = async (lockKey) => {
+  locks.delete(lockKey);
+};
+
 // @route   GET /api/transactions/:userId
 // @desc    Get transactions for user
 // @access  Public (should be protected in production)
@@ -44,29 +66,32 @@ router.get('/:userId', async (req, res) => {
 // @desc    Create withdrawal request and deduct flowers or BVR
 // @access  Public (should be protected in production)
 router.post('/withdraw', async (req, res) => {
+  let transactionCreated = null;
   try {
     const { userId, amount, currency, address, cryptoAddress, type } = req.body;
 
     if (!userId || !amount || !currency || (!address && !cryptoAddress)) {
+      console.error('🟥 Missing required fields', { userId, amount, currency, address, cryptoAddress });
       return res.status(400).json({
         success: false,
         message: 'Missing required fields (userId, amount, currency, and address/cryptoAddress)'
       });
     }
 
-    // Get game state to check balance and deduct resources
+    // Get game state to check balance
     const gameState = await GameState.findOne({ userId });
     if (!gameState) {
+      console.error('🟥 Game state not found for userId:', userId);
       return res.status(404).json({
         success: false,
         message: 'Game state not found'
       });
     }
 
-    // Determine what to deduct based on currency
+    // Determine what to deduct based on currency and CHECK BALANCE
     if (currency === 'BVR') {
-      // For BVR withdrawals, deduct bvrCoins
       if (gameState.bvrCoins < amount) {
+        console.error('🟥 Insufficient BVR', { current: gameState.bvrCoins, required: amount });
         return res.status(400).json({
           success: false,
           message: 'Insufficient BVR coins',
@@ -76,8 +101,8 @@ router.post('/withdraw', async (req, res) => {
       }
       gameState.bvrCoins -= amount;
     } else {
-      // For USD/crypto withdrawals, deduct flowers
       if (gameState.flowers < amount) {
+        console.error('🟥 Insufficient flowers', { current: gameState.flowers, required: amount });
         return res.status(400).json({
           success: false,
           message: 'Insufficient flowers',
@@ -87,8 +112,6 @@ router.post('/withdraw', async (req, res) => {
       }
       gameState.flowers -= amount;
     }
-
-    await gameState.save();
 
     // Create withdrawal transaction
     const transactionData = {
@@ -111,46 +134,87 @@ router.post('/withdraw', async (req, res) => {
     if (req.body.userEmail) transactionData.userEmail = req.body.userEmail;
 
     const transaction = new Transaction(transactionData);
-
-    await transaction.save();
-
-    // Send email notification to admin (not user)
-    try {
-      const user = await User.findById(userId);
-      const adminEmail = process.env.ADMIN_EMAIL || 'martinremy100@gmail.com'; // Admin email from env or default
-      
-      if (user && user.email) {
-        await sendWithdrawalSubmittedNotification(adminEmail, transaction, user.email);
-        console.log('📧 Withdrawal notification email sent to admin:', adminEmail);
-        console.log('📧 For user:', user.email);
-      }
-    } catch (emailError) {
-      console.error('📧 Failed to send withdrawal notification email:', emailError.message);
-      // Don't fail the withdrawal if email fails
+    // Add a lock to prevent concurrent modifications to the same GameState
+    const lockKey = `lock:${userId}`;
+    const lockAcquired = await acquireLock(lockKey, 5000); // Acquire lock for 5 seconds
+    if (!lockAcquired) {
+      console.error('🟥 Failed to acquire lock for user:', userId);
+      return res.status(429).json({
+        success: false,
+        message: 'Too many concurrent requests. Please try again later.'
+      });
     }
 
-    res.status(201).json({
-      success: true,
-      message: 'Withdrawal request created successfully',
-      transaction: {
-        id: transaction._id.toString(),
-        type: transaction.type,
-        amount: transaction.amount,
-        currency: transaction.currency,
-        status: transaction.status,
-        address: transaction.address,
-        cryptoAddress: transaction.cryptoAddress,
-        createdAt: transaction.createdAt
-      },
-      remainingFlowers: gameState.flowers
-    });
+    try {
+      // Manual rollback approach: save gameState first, then transaction
+      // If transaction fails, we'll rollback the gameState
+      await gameState.save();
+      transactionCreated = transaction;
+      await transaction.save();
+
+      const responseData = {
+        success: true,
+        message: 'Withdrawal request created successfully',
+        transaction: {
+          id: transaction._id.toString(),
+          type: transaction.type,
+          amount: transaction.amount,
+          currency: transaction.currency,
+          status: transaction.status,
+          address: transaction.address,
+          cryptoAddress: transaction.cryptoAddress,
+          createdAt: transaction.createdAt
+        },
+        remainingFlowers: gameState.flowers,
+        remainingBVR: gameState.bvrCoins
+      };
+      res.status(201).json(responseData);
+      // Send email notification after response (non-blocking)
+      setImmediate(async () => {
+        try {
+          const user = await User.findById(userId);
+          const adminEmail = process.env.ADMIN_EMAIL || 'martinremy100@gmail.com';
+          if (user && user.email) {
+            await sendWithdrawalSubmittedNotification(adminEmail, transaction, user.email);
+          }
+        } catch (emailError) {
+          console.error('📧 Failed to send withdrawal notification email:', emailError.message);
+        }
+      });
+    } catch (error) {
+      console.error('Transaction error:', error.stack || error);
+      // Manual rollback if transaction save fails
+      if (transactionCreated && gameState) {
+        try {
+          // Delete the transaction that was created
+          await Transaction.findByIdAndDelete(transactionCreated._id);
+          // Restore the balance
+          const { currency, amount } = req.body;
+          const freshGameState = await GameState.findOne({ userId: req.body.userId });
+          if (freshGameState) {
+            if (currency === 'BVR') {
+              freshGameState.bvrCoins += amount;
+            } else {
+              freshGameState.flowers += amount;
+            }
+            await freshGameState.save();
+            console.log('🟩 Manual rollback successful');
+          }
+        } catch (rollbackError) {
+          console.error('🟥 Manual rollback failed:', rollbackError);
+        }
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Transaction failed',
+        error: error.message
+      });
+    } finally {
+      // Release the lock
+      await releaseLock(lockKey);
+    }
   } catch (error) {
-    console.error('Withdrawal request error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error creating withdrawal request',
-      error: error.message
-    });
+    console.error('🟥 Withdrawal request error:', error.stack || error);
   }
 });
 
@@ -159,7 +223,7 @@ router.post('/withdraw', async (req, res) => {
 // @access  Public (should be protected in production)
 router.post('/', async (req, res) => {
   try {
-    const { userId, type, amount, currency, address, cryptoAddress, notes } = req.body;
+    const { userId, type, amount, currency, address, cryptoAddress, notes, flowersAmount, ticketsAmount } = req.body;
 
     if (!userId || !type || !amount || !currency) {
       return res.status(400).json({
@@ -176,6 +240,8 @@ router.post('/', async (req, res) => {
       address: address || null,
       cryptoAddress: cryptoAddress || null,
       notes: notes || null,
+      flowersAmount: flowersAmount || null,
+      ticketsAmount: ticketsAmount || null,
       status: 'pending'
     });
 
@@ -355,6 +421,41 @@ router.put('/:id/status', async (req, res) => {
       message: 'Error updating transaction',
       error: error.message
     });
+  }
+});
+
+// @route   PUT /api/transactions/:id/approve
+// @desc    Approve a flower purchase transaction
+// @access  Admin
+router.put('/:id/approve', async (req, res) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id);
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    if (transaction.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Transaction is not pending' });
+    }
+
+    // Update transaction status to completed
+    transaction.status = 'completed';
+    transaction.processedBy = req.user.id; // Assuming req.user contains the admin user
+    transaction.processedAt = new Date();
+    await transaction.save();
+
+    // Update the user's game state
+    const gameState = await GameState.findOne({ userId: transaction.userId });
+    if (gameState) {
+      gameState.flowers += transaction.flowersAmount || 0;
+      gameState.tickets += transaction.ticketsAmount || 0;
+      await gameState.save();
+    }
+
+    res.json({ success: true, message: 'Transaction approved successfully' });
+  } catch (error) {
+    console.error('Error approving transaction:', error);
+    res.status(500).json({ success: false, message: 'Error approving transaction', error: error.message });
   }
 });
 

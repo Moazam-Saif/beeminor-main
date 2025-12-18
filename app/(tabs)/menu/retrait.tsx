@@ -41,7 +41,7 @@ export default function RetraitScreen() {
     return Math.max(0, amount - fees);
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     console.log('=== WITHDRAWAL DEBUG ===');
     console.log('withdrawType:', withdrawType);
     console.log('withdrawAmount:', withdrawAmount);
@@ -98,24 +98,36 @@ export default function RetraitScreen() {
       );
       
       if (confirmed) {
-        game.submitWithdrawal({
-          userId: currentUser?.id || 'unknown',
-          userEmail: currentUser?.email || 'unknown',
-          type: 'withdrawal_diamond',
-          amount: amount,
-          network: selectedNetwork,
-          walletAddress: walletAddress,
-          usdAmount: usdAmount,
-          fees: fees,
-          receivedAmount: received,
-        }).then(() => {
-          window.alert('Succès: Votre demande de retrait a été soumise. L\'administrateur va valider votre transaction sous 24-48h.');
+        console.log('🔵 User confirmed withdrawal, calling submitWithdrawal...');
+        try {
+          const result = await game.submitWithdrawal({
+            userId: currentUser?.id || 'unknown',
+            userEmail: currentUser?.email || 'unknown',
+            type: 'withdrawal_diamond',
+            amount: amount,
+            network: selectedNetwork,
+            walletAddress: walletAddress,
+            usdAmount: usdAmount,
+            fees: fees,
+            receivedAmount: received,
+          });
+          console.log('🟢 submitWithdrawal SUCCESS, showing alert...', result);
+          alert('Succès: Votre demande de retrait a été soumise. L\'administrateur va valider votre transaction sous 24-48h.');
+          console.log('🟢 Alert shown, clearing form...');
           setWithdrawAmount('');
           setWalletAddress('');
-        }).catch((error) => {
-          console.error('Withdrawal error:', error);
-          window.alert('Erreur lors de la soumission du retrait');
-        });
+          console.log('🟢 Form cleared, withdrawal complete');
+        } catch (error) {
+          console.error('🔴 submitWithdrawal FAILED:', error);
+          alert('Erreur lors de la soumission du retrait. La transaction n\'a pas été créée.');
+          console.log('🔴 Error alert shown');
+          // Unblock saves since transaction failed
+          game.unblockSaves();
+        }
+      } else {
+        console.log('🟡 User cancelled withdrawal');
+        // User cancelled, unblock saves
+        game.unblockSaves();
       }
     } else {
       console.log('=== BVR WITHDRAWAL BRANCH ===');
@@ -143,7 +155,7 @@ export default function RetraitScreen() {
       );
       
       if (confirmed) {
-        console.log('Confirmed! Submitting withdrawal...');
+        console.log('🔵 User confirmed BVR withdrawal, calling submitWithdrawal...');
         console.log('Withdrawal data:', {
           userId: currentUser?.id || 'unknown',
           userEmail: currentUser?.email || 'unknown',
@@ -153,22 +165,32 @@ export default function RetraitScreen() {
           walletAddress: walletAddress,
         });
         
-        game.submitWithdrawal({
-          userId: currentUser?.id || 'unknown',
-          userEmail: currentUser?.email || 'unknown',
-          type: 'withdrawal_bvr',
-          amount: amount,
-          network: 'SOL',
-          walletAddress: walletAddress,
-        }).then((result) => {
-          console.log('Withdrawal result:', result);
-          window.alert('Succès: Votre demande de retrait BVR a été soumise. L\'administrateur va valider votre transaction sur Solana sous 24-48h.');
+        try {
+          const result = await game.submitWithdrawal({
+            userId: currentUser?.id || 'unknown',
+            userEmail: currentUser?.email || 'unknown',
+            type: 'withdrawal_bvr',
+            amount: amount,
+            network: 'SOL',
+            walletAddress: walletAddress,
+          });
+          console.log('🟢 submitWithdrawal SUCCESS:', result);
+          alert('Succès: Votre demande de retrait BVR a été soumise. L\'administrateur va valider votre transaction sur Solana sous 24-48h.');
+          console.log('🟢 Alert shown, clearing form...');
           setWithdrawAmount('');
           setWalletAddress('');
-        }).catch((error) => {
-          console.error('Withdrawal error:', error);
-          window.alert('Erreur lors de la soumission du retrait');
-        });
+          console.log('🟢 Form cleared, BVR withdrawal complete');
+        } catch (error) {
+          console.error('🔴 submitWithdrawal FAILED:', error);
+          alert('Erreur lors de la soumission du retrait. La transaction n\'a pas été créée.');
+          console.log('🔴 Error alert shown');
+          // Unblock saves since transaction failed
+          game.unblockSaves();
+        }
+      } else {
+        console.log('🟡 User cancelled BVR withdrawal');
+        // User cancelled, unblock saves
+        game.unblockSaves();
       }
     }
   };
