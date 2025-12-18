@@ -299,22 +299,7 @@ router.put('/:id/status', async (req, res) => {
     let refundedAmount = 0;
     let refundedCurrency = '';
 
-    // Update transaction status first
-    console.log(`🔄 Updating transaction ${req.params.id} status to: ${status}`);
-    transaction.status = status;
-    transaction.adminNotes = adminNotes || null;
-    // Set processedAt when transaction is completed or cancelled
-    if (status === 'completed' || status === 'cancelled') {
-      transaction.processedAt = new Date();
-    }
-    
-    try {
-      const savedTransaction = await transaction.save();
-      console.log(`✅ Transaction ${req.params.id} saved successfully. Status: ${savedTransaction.status}`);
-    } catch (saveError) {
-      console.error(`❌ CRITICAL: Failed to save transaction ${req.params.id}:`, saveError);
-      throw saveError;
-    }
+    console.log(`🔄 Processing transaction ${req.params.id} status change to: ${status}`);
 
     // AFTER transaction is saved, update user's GameState
     // If deposit is being completed, add flowers and/or tickets to user account
@@ -392,45 +377,75 @@ router.put('/:id/status', async (req, res) => {
       }
     }
 
-    // If withdrawal is being cancelled/failed, refund the resources
+    // IMPORTANT: If withdrawal is being cancelled/failed, refund the resources FIRST before updating transaction status
     if ((transaction.type === 'withdrawal' || transaction.type === 'withdrawal_diamond' || transaction.type === 'withdrawal_bvr') && 
         (status === 'cancelled' || status === 'failed')) {
-      console.log('=== REFUND DEBUG ===');
+      console.log('🔄 === REFUND PROCESS STARTING ===');
+      console.log('Transaction ID:', req.params.id);
       console.log('Transaction type:', transaction.type);
       console.log('Transaction currency:', transaction.currency);
       console.log('Transaction amount:', transaction.amount);
+      console.log('User ID:', transaction.userId);
       
       const gameState = await GameState.findOne({ userId: transaction.userId });
-      if (gameState) {
-        console.log('Before refund - bvrCoins:', gameState.bvrCoins, 'flowers:', gameState.flowers);
-        
-        // Refund based on currency type
-        if (transaction.currency === 'BVR') {
-          gameState.bvrCoins += transaction.amount;
-          refundedAmount = transaction.amount;
-          refundedCurrency = 'BVR';
-          console.log('Refunding BVR:', transaction.amount);
-        } else {
-          gameState.flowers += transaction.amount;
-          refundedAmount = transaction.amount;
-          refundedCurrency = 'USD';
-          console.log('Refunding flowers:', transaction.amount);
-        }
-        
-        gameState.lastUpdated = new Date();
-        
-        try {
-          await gameState.save();
-          console.log('✅ Refund GameState saved successfully');
-          console.log('After refund - bvrCoins:', gameState.bvrCoins, 'flowers:', gameState.flowers);
-          console.log('=== REFUND COMPLETE ===');
-        } catch (saveError) {
-          console.error('❌ CRITICAL: Failed to save refund GameState:', saveError);
-          throw saveError;
-        }
-      } else {
-        console.log('ERROR: GameState not found for refund');
+      if (!gameState) {
+        console.error('❌ CRITICAL ERROR: GameState not found for refund!');
+        console.error('User ID:', transaction.userId);
+        return res.status(404).json({
+          success: false,
+          message: 'Cannot process refund: User game state not found'
+        });
       }
+      
+      console.log('✅ GameState found for refund');
+      console.log('Before refund - bvrCoins:', gameState.bvrCoins, 'flowers:', gameState.flowers);
+      
+      // Refund based on currency type
+      if (transaction.currency === 'BVR') {
+        gameState.bvrCoins += transaction.amount;
+        refundedAmount = transaction.amount;
+        refundedCurrency = 'BVR';
+        console.log(`💰 Refunding ${transaction.amount} BVR coins`);
+      } else {
+        gameState.flowers += transaction.amount;
+        refundedAmount = transaction.amount;
+        refundedCurrency = 'flowers';
+        console.log(`💰 Refunding ${transaction.amount} flowers`);
+      }
+      
+      gameState.lastUpdated = new Date();
+      
+      try {
+        const savedGameState = await gameState.save();
+        console.log('✅ REFUND SUCCESSFUL - GameState saved');
+        console.log('After refund - bvrCoins:', savedGameState.bvrCoins, 'flowers:', savedGameState.flowers);
+        console.log('=== REFUND COMPLETE ===\n');
+      } catch (saveError) {
+        console.error('❌ CRITICAL: Failed to save refund GameState:', saveError);
+        console.error('This means the refund FAILED - transaction will NOT be marked as cancelled');
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to process refund',
+          error: saveError.message
+        });
+      }
+    }
+    
+    // NOW update transaction status (after refund is successful)
+    console.log(`🔄 Updating transaction ${req.params.id} status to: ${status}`);
+    transaction.status = status;
+    transaction.adminNotes = adminNotes || null;
+    // Set processedAt when transaction is completed or cancelled
+    if (status === 'completed' || status === 'cancelled' || status === 'failed') {
+      transaction.processedAt = new Date();
+    }
+    
+    try {
+      const savedTransaction = await transaction.save();
+      console.log(`✅ Transaction ${req.params.id} saved successfully. Status: ${savedTransaction.status}\n`);
+    } catch (saveError) {
+      console.error(`❌ CRITICAL: Failed to save transaction ${req.params.id}:`, saveError);
+      throw saveError;
     }
 
     // No email notifications on approval/rejection - only on withdrawal request submission
