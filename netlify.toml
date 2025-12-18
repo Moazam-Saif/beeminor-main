@@ -1,12 +1,13 @@
 # Netlify Configuration for Beeminor
 # Manual Deploy Only - Auto-publish disabled for safety
 
+# --- Expo/React Native Web build for Netlify ---
 [build]
   # Build command for Expo web (non-interactive, outputs to web-build)
-  command = "npm run build:web"
+  command = "npx expo export:web"
   
   # Output directory where built files are stored
-  publish = "web-build/"
+  publish = "web-build"
   
   # Base directory (project root)
   base = "."
@@ -18,8 +19,13 @@
   NODE_ENV = "production"
   
   # Backend API URLs - Set these in Netlify Dashboard instead
-  # EXPO_PUBLIC_API_BASE_URL = "https://beeminor-main-production.up.railway.app"
-  # EXPO_PUBLIC_RORK_API_BASE_URL = "https://beeminor-main-production.up.railway.app"
+  # EXPO_PUBLIC_API_BASE_URL = "https://your-backend-url.com"
+  # EXPO_PUBLIC_APP_URL = "https://your-frontend-url.com"
+
+[context.production.environment]
+  # Set production-specific env vars here if needed
+
+# --- End Netlify config ---
 
 # Disable auto-publishing - manual deploy only
 [build.processing]
