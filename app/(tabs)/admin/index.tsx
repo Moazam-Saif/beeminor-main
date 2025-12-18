@@ -576,22 +576,22 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
                     selectedUserId === user.id && styles.userTableRowSelected
                   ]}
                 >
-                  <Text style={[styles.userTableCell, styles.userTableColId]} numberOfLines={1}>
+                  <Text style={[styles.userTableCellText, styles.userTableColId]} numberOfLines={1}>
                     {user.id}
                   </Text>
-                  <Text style={[styles.userTableCell, styles.userTableColEmail]} numberOfLines={1}>
+                  <Text style={[styles.userTableCellText, styles.userTableColEmail]} numberOfLines={1}>
                     {user.email}
                   </Text>
-                  <Text style={[styles.userTableCell, styles.userTableColDate]}>
+                  <Text style={[styles.userTableCellText, styles.userTableColDate]}>
                     {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                   </Text>
-                  <Text style={[styles.userTableCell, styles.userTableColAmount]}>
+                  <Text style={[styles.userTableCellText, styles.userTableColAmount]}>
                     ${stats.totalDeposited.toFixed(2)}
                   </Text>
-                  <Text style={[styles.userTableCell, styles.userTableColAmount]}>
+                  <Text style={[styles.userTableCellText, styles.userTableColAmount]}>
                     ${stats.totalWithdrawn.toFixed(2)}
                   </Text>
-                  <View style={[styles.userTableCell, styles.userTableColAction]}>
+                  <View style={[styles.userTableCellView, styles.userTableColAction]}>
                     <TouchableOpacity
                       style={[
                         styles.selectUserButton,
@@ -2091,9 +2091,12 @@ const styles = StyleSheet.create({
   userTableRowSelected: {
     backgroundColor: '#FFF5E6',
   },
-  userTableCell: {
+  userTableCellText: {
     fontSize: 13,
     color: '#666',
+  },
+  userTableCellView: {
+    // Add any view-specific styles if needed
   },
   selectUserButton: {
     backgroundColor: '#FF8C00',

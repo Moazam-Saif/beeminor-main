@@ -481,15 +481,19 @@ router.get('/pending/all', async (req, res) => {
       success: true,
       transactions: transactions.map(t => ({
         id: t._id.toString(),
-        userId: t.userId._id.toString(),
-        userEmail: t.userId.email,
+        userId: t.userId ? t.userId._id.toString() : 'Unknown',
+        userEmail: t.userId ? t.userId.email : t.userEmail || 'Unknown',
         type: t.type,
         amount: t.amount,
         currency: t.currency,
         address: t.address,
         cryptoAddress: t.cryptoAddress,
         notes: t.notes,
-        createdAt: t.createdAt
+        createdAt: t.createdAt,
+        flowersAmount: t.flowersAmount,
+        usdAmount: t.usdAmount,
+        network: t.network,
+        walletAddress: t.walletAddress
       }))
     });
   } catch (error) {
@@ -508,7 +512,7 @@ router.get('/pending/all', async (req, res) => {
 router.get('/history/all', async (req, res) => {
   try {
     const transactions = await Transaction.find({ 
-      status: { $in: ['completed', 'cancelled'] } 
+      status: { $in: ['completed', 'cancelled', 'failed'] } 
     })
       .sort({ updatedAt: -1 })
       .populate('userId', 'email referralCode')
@@ -519,7 +523,7 @@ router.get('/history/all', async (req, res) => {
       transactions: transactions.map(t => ({
         id: t._id.toString(),
         userId: t.userId ? t.userId._id.toString() : 'Unknown',
-        userEmail: t.userId ? t.userId.email : 'Unknown',
+        userEmail: t.userId ? t.userId.email : t.userEmail || 'Unknown',
         type: t.type,
         amount: t.amount,
         currency: t.currency,
@@ -529,7 +533,11 @@ router.get('/history/all', async (req, res) => {
         notes: t.notes,
         processedAt: t.processedAt,
         createdAt: t.createdAt,
-        updatedAt: t.updatedAt
+        updatedAt: t.updatedAt,
+        flowersAmount: t.flowersAmount,
+        usdAmount: t.usdAmount,
+        network: t.network,
+        walletAddress: t.walletAddress
       }))
     });
   } catch (error) {
