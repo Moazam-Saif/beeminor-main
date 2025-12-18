@@ -1168,105 +1168,35 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
     console.log('User ID:', userId);
     console.log('Resources to add:', { flowers, tickets, diamonds, honey, bvrCoins });
 
-    let gameState;
-    try {
-      gameState = await GameState.findOne({ userId });
-    } catch (findErr) {
-      console.error('❌ Error finding GameState for user:', userId, findErr);
-      return res.status(500).json({
-        success: false,
-        message: 'Error finding game state',
-        error: findErr.message
-      });
-    }
-    if (!gameState) {
-      console.error('❌ GameState not found for user:', userId);
-      return res.status(404).json({
-        success: false,
-        message: 'Game state not found'
-      });
-    }
-
-    console.log('✅ GameState found');
-    console.log('Before update:', {
-      flowers: gameState.flowers,
-      tickets: gameState.tickets,
-      diamonds: gameState.diamonds,
-      honey: gameState.honey,
-      bvrCoins: gameState.bvrCoins
-    });
-
-    // Add resources
-    if (flowers) gameState.flowers += flowers;
-    if (tickets) gameState.tickets += tickets;
-    if (diamonds) gameState.diamonds += diamonds;
-    if (honey) gameState.honey += honey;
-    if (bvrCoins) gameState.bvrCoins += bvrCoins;
-    
-    gameState.lastUpdated = new Date();
-
-    console.log('After update (before save):', {
-      flowers: gameState.flowers,
-      tickets: gameState.tickets,
-      diamonds: gameState.diamonds,
-      honey: gameState.honey,
-      bvrCoins: gameState.bvrCoins
-    });
+    // Atomic $inc update
+    const incUpdate = {};
+    if (flowers) incUpdate.flowers = flowers;
+    if (tickets) incUpdate.tickets = tickets;
+    if (diamonds) incUpdate.diamonds = diamonds;
+    if (honey) incUpdate.honey = honey;
+    if (bvrCoins) incUpdate.bvrCoins = bvrCoins;
 
     try {
-      const savedState = await gameState.save();
-      console.log('✅ GameState save() returned');
-      console.log('After save:', {
+      const savedState = await GameState.findOneAndUpdate(
+        { userId },
+        { $inc: incUpdate, $set: { lastUpdated: new Date() } },
+        { new: true }
+      );
+      if (!savedState) {
+        console.error('❌ GameState not found for user (atomic update):', userId);
+        return res.status(404).json({
+          success: false,
+          message: 'Game state not found after update'
+        });
+      }
+      console.log('✅ GameState atomic update returned');
+      console.log('After atomic update:', {
         flowers: savedState.flowers,
         tickets: savedState.tickets,
         diamonds: savedState.diamonds,
         honey: savedState.honey,
         bvrCoins: savedState.bvrCoins
       });
-      // CRITICAL: Verify the data actually persisted to database
-      console.log('🔍 Verifying data persisted to database...');
-      let verifiedState;
-      try {
-        verifiedState = await GameState.findOne({ userId }).lean();
-      } catch (verifyErr) {
-        console.error('❌ Error verifying GameState from DB:', verifyErr);
-        return res.status(500).json({
-          success: false,
-          message: 'Error verifying saved data',
-          error: verifyErr.message
-        });
-      }
-      if (verifiedState) {
-        console.log('✅ Verified from database:', {
-          flowers: verifiedState.flowers,
-          tickets: verifiedState.tickets,
-          diamonds: verifiedState.diamonds,
-          honey: verifiedState.honey,
-          bvrCoins: verifiedState.bvrCoins
-        });
-        // Check if verified data matches what we saved
-        const flowersMatch = verifiedState.flowers === savedState.flowers;
-        const ticketsMatch = verifiedState.tickets === savedState.tickets;
-        if (!flowersMatch || !ticketsMatch) {
-          console.error('❌ WARNING: Database data does NOT match saved data!');
-          console.error('Expected flowers:', savedState.flowers, 'Got:', verifiedState.flowers);
-          console.error('Expected tickets:', savedState.tickets, 'Got:', verifiedState.tickets);
-          return res.status(500).json({
-            success: false,
-            message: 'Data verification failed - changes did not persist to database',
-            error: 'Write verification mismatch'
-          });
-        }
-        console.log('✅ Data verification successful - changes persisted');
-      } else {
-        console.error('❌ CRITICAL: Could not verify - GameState disappeared!');
-        return res.status(500).json({
-          success: false,
-          message: 'Data verification failed - could not read back from database',
-          error: 'Verification read failed'
-        });
-      }
-      console.log('=== ADMIN ADD RESOURCES COMPLETE ===\n');
       res.json({
         success: true,
         message: 'Resources added successfully',
@@ -1278,16 +1208,16 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
           bvrCoins: savedState.bvrCoins
         }
       });
-    } catch (saveError) {
-      console.error('❌ CRITICAL: Failed to save GameState:', saveError);
-      console.error('Save error name:', saveError.name);
-      console.error('Save error message:', saveError.message);
-      console.error('Save error stack:', saveError.stack);
+    } catch (updateError) {
+      console.error('❌ CRITICAL: Failed to update GameState atomically:', updateError);
+      console.error('Update error name:', updateError.name);
+      console.error('Update error message:', updateError.message);
+      console.error('Update error stack:', updateError.stack);
       return res.status(500).json({
         success: false,
-        message: 'Failed to save resources',
-        error: saveError.message,
-        stack: saveError.stack
+        message: 'Failed to update resources atomically',
+        error: updateError.message,
+        stack: updateError.stack
       });
     }
   } catch (error) {
