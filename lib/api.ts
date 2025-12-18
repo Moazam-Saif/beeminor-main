@@ -1,28 +1,7 @@
 /**
  * API Service for connecting to Express.js backend
  */
-
-const getBaseUrl = () => {
-  // Check for explicit environment variable
-  const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-  
-  if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
-    // Valid absolute URL - remove trailing slash
-    return envUrl.replace(/\/$/, '');
-  }
-
-  // Default to localhost for local development
-  const isDev = process.env.NODE_ENV !== "production";
-  if (isDev) {
-    return "http://localhost:3001";
-  }
-
-  // Production fallback - hardcoded Railway URL
-  console.log('Using production fallback URL');
-  return "https://beeminor-main-production-b904.up.railway.app";
-};
-
-const API_BASE_URL = getBaseUrl();
+import { API_BASE_URL } from './config';
 
 // Helper function for API calls
 async function apiRequest<T>(

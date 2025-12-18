@@ -224,8 +224,8 @@ function StatsTab({ game }: { game: ReturnType<typeof useGame> }) {
   useEffect(() => {
     const loadGlobalStats = async () => {
       try {
-        const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-        const response = await fetch(`${apiBaseUrl}/api/leaderboard/stats`);
+        const { API_BASE_URL } = await import('../../../lib/config');
+        const response = await fetch(`${API_BASE_URL}/api/leaderboard/stats`);
         const data = await response.json();
         if (data.success) {
           setGlobalStats(data.stats);
@@ -452,8 +452,8 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
     const amount = parseInt(flowersInput);
     if (!isNaN(amount) && amount > 0) {
       try {
-        const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-        const response = await fetch(`${apiBaseUrl}/api/game/${selectedUserId}/admin/add-resources`, {
+        const { API_BASE_URL } = await import('../../../lib/config');
+        const response = await fetch(`${API_BASE_URL}/api/game/${selectedUserId}/admin/add-resources`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ flowers: amount })
@@ -488,8 +488,8 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
     const amount = parseInt(removeFlowersInput);
     if (!isNaN(amount) && amount > 0) {
       try {
-        const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-        const response = await fetch(`${apiBaseUrl}/api/game/${selectedUserId}/admin/add-resources`, {
+        const { API_BASE_URL } = await import('../../../lib/config');
+        const response = await fetch(`${API_BASE_URL}/api/game/${selectedUserId}/admin/add-resources`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ flowers: -amount })
@@ -524,8 +524,8 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
     const amount = parseInt(ticketsInput);
     if (!isNaN(amount) && amount > 0) {
       try {
-        const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-        const response = await fetch(`${apiBaseUrl}/api/game/${selectedUserId}/admin/add-resources`, {
+        const { API_BASE_URL } = await import('../../../lib/config');
+        const response = await fetch(`${API_BASE_URL}/api/game/${selectedUserId}/admin/add-resources`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tickets: amount })
@@ -718,8 +718,8 @@ function TransactionsTab({ game }: { game: ReturnType<typeof useGame> }) {
       
       // Load processed transaction history from backend
       try {
-        const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-        const response = await fetch(`${apiBaseUrl}/api/transactions/history/all`);
+        const { API_BASE_URL } = await import('../../../lib/config');
+        const response = await fetch(`${API_BASE_URL}/api/transactions/history/all`);
         const data = await response.json();
         if (data.success) {
           setProcessedTransactions(data.transactions.map((txn: any) => ({
