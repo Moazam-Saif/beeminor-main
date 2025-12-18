@@ -1168,7 +1168,17 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
     console.log('User ID:', userId);
     console.log('Resources to add:', { flowers, tickets, diamonds, honey, bvrCoins });
 
-    const gameState = await GameState.findOne({ userId });
+    let gameState;
+    try {
+      gameState = await GameState.findOne({ userId });
+    } catch (findErr) {
+      console.error('❌ Error finding GameState for user:', userId, findErr);
+      return res.status(500).json({
+        success: false,
+        message: 'Error finding game state',
+        error: findErr.message
+      });
+    }
     if (!gameState) {
       console.error('❌ GameState not found for user:', userId);
       return res.status(404).json({
@@ -1213,10 +1223,19 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
         honey: savedState.honey,
         bvrCoins: savedState.bvrCoins
       });
-      
       // CRITICAL: Verify the data actually persisted to database
       console.log('🔍 Verifying data persisted to database...');
-      const verifiedState = await GameState.findOne({ userId }).lean();
+      let verifiedState;
+      try {
+        verifiedState = await GameState.findOne({ userId }).lean();
+      } catch (verifyErr) {
+        console.error('❌ Error verifying GameState from DB:', verifyErr);
+        return res.status(500).json({
+          success: false,
+          message: 'Error verifying saved data',
+          error: verifyErr.message
+        });
+      }
       if (verifiedState) {
         console.log('✅ Verified from database:', {
           flowers: verifiedState.flowers,
@@ -1225,11 +1244,9 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
           honey: verifiedState.honey,
           bvrCoins: verifiedState.bvrCoins
         });
-        
         // Check if verified data matches what we saved
         const flowersMatch = verifiedState.flowers === savedState.flowers;
         const ticketsMatch = verifiedState.tickets === savedState.tickets;
-        
         if (!flowersMatch || !ticketsMatch) {
           console.error('❌ WARNING: Database data does NOT match saved data!');
           console.error('Expected flowers:', savedState.flowers, 'Got:', verifiedState.flowers);
@@ -1240,7 +1257,6 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
             error: 'Write verification mismatch'
           });
         }
-        
         console.log('✅ Data verification successful - changes persisted');
       } else {
         console.error('❌ CRITICAL: Could not verify - GameState disappeared!');
@@ -1250,9 +1266,7 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
           error: 'Verification read failed'
         });
       }
-      
       console.log('=== ADMIN ADD RESOURCES COMPLETE ===\n');
-
       res.json({
         success: true,
         message: 'Resources added successfully',
@@ -1268,18 +1282,24 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
       console.error('❌ CRITICAL: Failed to save GameState:', saveError);
       console.error('Save error name:', saveError.name);
       console.error('Save error message:', saveError.message);
+      console.error('Save error stack:', saveError.stack);
       return res.status(500).json({
         success: false,
         message: 'Failed to save resources',
-        error: saveError.message
+        error: saveError.message,
+        stack: saveError.stack
       });
     }
   } catch (error) {
     console.error('❌ Admin add resources error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error adding resources',
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 });
