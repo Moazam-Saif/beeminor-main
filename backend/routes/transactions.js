@@ -300,14 +300,21 @@ router.put('/:id/status', async (req, res) => {
     let refundedCurrency = '';
 
     // Update transaction status first
+    console.log(`🔄 Updating transaction ${req.params.id} status to: ${status}`);
     transaction.status = status;
     transaction.adminNotes = adminNotes || null;
     // Set processedAt when transaction is completed or cancelled
     if (status === 'completed' || status === 'cancelled') {
       transaction.processedAt = new Date();
     }
-    await transaction.save();
-    console.log('Transaction status updated to:', status);
+    
+    try {
+      const savedTransaction = await transaction.save();
+      console.log(`✅ Transaction ${req.params.id} saved successfully. Status: ${savedTransaction.status}`);
+    } catch (saveError) {
+      console.error(`❌ CRITICAL: Failed to save transaction ${req.params.id}:`, saveError);
+      throw saveError;
+    }
 
     // AFTER transaction is saved, update user's GameState
     // If deposit is being completed, add flowers and/or tickets to user account
@@ -359,13 +366,21 @@ router.put('/:id/status', async (req, res) => {
         console.log('After addition (before save) - flowers:', gameState.flowers);
         console.log('After addition (before save) - tickets:', gameState.tickets);
         
-        const savedState = await gameState.save();
-        
-        console.log('✅ GameState SAVED');
-        console.log('After save - flowers:', savedState.flowers);
-        console.log('After save - tickets:', savedState.tickets);
-        console.log('After save - lastUpdated:', savedState.lastUpdated);
-        console.log('🔴🔴🔴 DEPOSIT COMPLETE 🔴🔴🔴\n\n');
+        try {
+          const savedState = await gameState.save();
+          console.log('✅ GameState SAVED SUCCESSFULLY');
+          console.log('After save - flowers:', savedState.flowers);
+          console.log('After save - tickets:', savedState.tickets);
+          console.log('After save - lastUpdated:', savedState.lastUpdated);
+          console.log('🔴🔴🔴 DEPOSIT COMPLETE 🔴🔴🔴\n\n');
+        } catch (saveError) {
+          console.error('❌ CRITICAL: Failed to save GameState:', saveError);
+          console.error('GameState ID:', gameState._id);
+          console.error('User ID:', gameState.userId);
+          console.error('Error name:', saveError.name);
+          console.error('Error message:', saveError.message);
+          throw saveError;
+        }
       } else {
         console.log('❌ ERROR: GameState not found for deposit');
         console.log('Looking for userId:', transaction.userId);
@@ -403,9 +418,16 @@ router.put('/:id/status', async (req, res) => {
         }
         
         gameState.lastUpdated = new Date();
-        await gameState.save();
-        console.log('After refund - bvrCoins:', gameState.bvrCoins, 'flowers:', gameState.flowers);
-        console.log('=== REFUND COMPLETE ===');
+        
+        try {
+          await gameState.save();
+          console.log('✅ Refund GameState saved successfully');
+          console.log('After refund - bvrCoins:', gameState.bvrCoins, 'flowers:', gameState.flowers);
+          console.log('=== REFUND COMPLETE ===');
+        } catch (saveError) {
+          console.error('❌ CRITICAL: Failed to save refund GameState:', saveError);
+          throw saveError;
+        }
       } else {
         console.log('ERROR: GameState not found for refund');
       }

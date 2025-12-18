@@ -45,14 +45,32 @@ const connectDB = async () => {
     
     // Connection options for MongoDB Atlas
     const options = {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+      serverSelectionTimeoutMS: 10000, // Timeout after 10 seconds
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      minPoolSize: 2, // Maintain at least 2 connections
+      retryWrites: true, // Retry failed writes
+      w: 'majority', // Wait for majority of replica set nodes to acknowledge writes
+      wtimeoutMS: 10000, // Timeout for write operations
     };
     
     const conn = await mongoose.connect(mongoURI, options);
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📊 Database: ${conn.connection.name}`);
     console.log(`🌐 Ready to accept connections\n`);
+    
+    // Add connection event listeners for debugging
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ MongoDB connection error:', err);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️  MongoDB disconnected');
+    });
+    
+    mongoose.connection.on('reconnected', () => {
+      console.log('🔄 MongoDB reconnected');
+    });
   } catch (error) {
     console.error('\n❌ MongoDB connection error:', error.message);
     console.error('Error details:', error.name);
