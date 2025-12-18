@@ -4,10 +4,10 @@
 # --- Expo/React Native Web build for Netlify ---
 [build]
   # Build command for Expo web (non-interactive, outputs to web-build)
-  command = "npx expo export:web"
+  command = "npm run build:web"
   
   # Output directory where built files are stored
-  publish = "web-build"
+  publish = "web-build/"
   
   # Base directory (project root)
   base = "."
