@@ -346,6 +346,14 @@ router.put('/:id/status', async (req, res) => {
         
         gameState.flowers += flowersToAdd;
         gameState.tickets += ticketsToAdd;
+        
+        // Add bonus tickets based on USD amount: 1 ticket per $10 spent (only for real money deposits)
+        if (transaction.usdAmount && transaction.usdAmount > 0 && transaction.type === 'deposit_crypto') {
+          const bonusTickets = Math.floor(transaction.usdAmount / 10);
+          gameState.tickets += bonusTickets;
+          console.log(`💰 Adding ${bonusTickets} bonus tickets for $${transaction.usdAmount} purchase`);
+        }
+        
         gameState.lastUpdated = new Date();
         
         console.log('After addition (before save) - flowers:', gameState.flowers);
