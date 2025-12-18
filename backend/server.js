@@ -59,17 +59,25 @@ const connectDB = async () => {
     console.log(`📊 Database: ${conn.connection.name}`);
     console.log(`🌐 Ready to accept connections\n`);
     
+    // Set global Mongoose options to ensure writes are properly acknowledged
+    mongoose.set('bufferCommands', false); // Disable buffering - fail fast on connection issues
+    mongoose.set('strictQuery', false); // Disable strict query mode
+    
     // Add connection event listeners for debugging
     mongoose.connection.on('error', (err) => {
       console.error('❌ MongoDB connection error:', err);
     });
     
     mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️  MongoDB disconnected');
+      console.warn('⚠️  MongoDB disconnected - writes will fail');
     });
     
     mongoose.connection.on('reconnected', () => {
       console.log('🔄 MongoDB reconnected');
+    });
+    
+    mongoose.connection.on('close', () => {
+      console.warn('⚠️  MongoDB connection closed');
     });
   } catch (error) {
     console.error('\n❌ MongoDB connection error:', error.message);
@@ -134,6 +142,57 @@ app.get('/api', (req, res) => {
       '/api/support'
     ]
   });
+});
+
+// Diagnostic endpoint to test database writes
+app.get('/api/test-db-write', async (req, res) => {
+  try {
+    const GameState = require('./models/GameState');
+    const testUserId = req.query.userId;
+    
+    if (!testUserId) {
+      return res.json({ error: 'Provide ?userId=<id>' });
+    }
+    
+    console.log('\n🧪 === DB WRITE TEST ===');
+    console.log('User ID:', testUserId);
+    
+    const before = await GameState.findOne({ userId: testUserId });
+    if (!before) {
+      return res.json({ error: 'User not found' });
+    }
+    
+    console.log('Before:', { flowers: before.flowers, tickets: before.tickets });
+    
+    const oldFlowers = before.flowers;
+    before.flowers += 1;
+    before.lastUpdated = new Date();
+    
+    const start = Date.now();
+    await before.save();
+    const saveTime = Date.now() - start;
+    
+    console.log('Save completed in', saveTime, 'ms');
+    
+    // Verify
+    const after = await GameState.findOne({ userId: testUserId }).lean();
+    console.log('After:', { flowers: after.flowers, tickets: after.tickets });
+    
+    const success = after.flowers === oldFlowers + 1;
+    console.log('Test result:', success ? '✅ PASS' : '❌ FAIL');
+    console.log('=== DB WRITE TEST COMPLETE ===\n');
+    
+    res.json({
+      success,
+      saveTimeMs: saveTime,
+      before: { flowers: oldFlowers },
+      after: { flowers: after.flowers },
+      persisted: success
+    });
+  } catch (error) {
+    console.error('DB write test error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Health check

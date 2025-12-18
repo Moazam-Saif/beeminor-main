@@ -1205,7 +1205,7 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
 
     try {
       const savedState = await gameState.save();
-      console.log('✅ GameState saved successfully');
+      console.log('✅ GameState save() returned');
       console.log('After save:', {
         flowers: savedState.flowers,
         tickets: savedState.tickets,
@@ -1213,6 +1213,44 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
         honey: savedState.honey,
         bvrCoins: savedState.bvrCoins
       });
+      
+      // CRITICAL: Verify the data actually persisted to database
+      console.log('🔍 Verifying data persisted to database...');
+      const verifiedState = await GameState.findOne({ userId }).lean();
+      if (verifiedState) {
+        console.log('✅ Verified from database:', {
+          flowers: verifiedState.flowers,
+          tickets: verifiedState.tickets,
+          diamonds: verifiedState.diamonds,
+          honey: verifiedState.honey,
+          bvrCoins: verifiedState.bvrCoins
+        });
+        
+        // Check if verified data matches what we saved
+        const flowersMatch = verifiedState.flowers === savedState.flowers;
+        const ticketsMatch = verifiedState.tickets === savedState.tickets;
+        
+        if (!flowersMatch || !ticketsMatch) {
+          console.error('❌ WARNING: Database data does NOT match saved data!');
+          console.error('Expected flowers:', savedState.flowers, 'Got:', verifiedState.flowers);
+          console.error('Expected tickets:', savedState.tickets, 'Got:', verifiedState.tickets);
+          return res.status(500).json({
+            success: false,
+            message: 'Data verification failed - changes did not persist to database',
+            error: 'Write verification mismatch'
+          });
+        }
+        
+        console.log('✅ Data verification successful - changes persisted');
+      } else {
+        console.error('❌ CRITICAL: Could not verify - GameState disappeared!');
+        return res.status(500).json({
+          success: false,
+          message: 'Data verification failed - could not read back from database',
+          error: 'Verification read failed'
+        });
+      }
+      
       console.log('=== ADMIN ADD RESOURCES COMPLETE ===\n');
 
       res.json({
