@@ -9,13 +9,14 @@ const User = require('../models/User');
 router.get('/:userId', async (req, res) => {
   try {
     let gameState = await GameState.findOne({ userId: req.params.userId });
-    
+    console.log('GET /api/game/:userId - DB returned:', gameState);
     // Create default game state if doesn't exist
     if (!gameState) {
       gameState = new GameState({
         userId: req.params.userId
       });
       await gameState.save();
+      console.log('GET /api/game/:userId - Created new GameState:', gameState);
     }
 
     res.json({
