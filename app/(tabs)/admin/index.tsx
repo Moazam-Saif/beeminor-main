@@ -453,12 +453,19 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
     if (!isNaN(amount) && amount > 0) {
       try {
         const { API_BASE_URL } = await import('../../../lib/config');
+        console.log('Adding flowers:', amount, 'to user:', selectedUserId);
         const response = await fetch(`${API_BASE_URL}/api/game/${selectedUserId}/admin/add-resources`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ flowers: amount })
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Add flowers response:', data);
         
         if (data.success) {
           setFlowersInput('');
@@ -467,10 +474,22 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
           } else {
             Alert.alert('Succès', `${amount} fleurs ajoutées à l'utilisateur ${selectedUser?.email}!`);
           }
+        } else {
+          console.error('Failed to add flowers:', data.message);
+          if (Platform.OS === 'web') {
+            alert(`Erreur: ${data.message || 'Échec de l\'ajout des fleurs'}`);
+          } else {
+            Alert.alert('Erreur', data.message || 'Échec de l\'ajout des fleurs');
+          }
         }
       } catch (error) {
         console.error('Error adding flowers:', error);
-        alert('Erreur lors de l\'ajout des fleurs');
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        if (Platform.OS === 'web') {
+          alert(`Erreur lors de l'ajout des fleurs: ${errorMessage}`);
+        } else {
+          Alert.alert('Erreur', `Erreur lors de l'ajout des fleurs: ${errorMessage}`);
+        }
       }
     }
   };
@@ -489,12 +508,19 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
     if (!isNaN(amount) && amount > 0) {
       try {
         const { API_BASE_URL } = await import('../../../lib/config');
+        console.log('Removing flowers:', amount, 'from user:', selectedUserId);
         const response = await fetch(`${API_BASE_URL}/api/game/${selectedUserId}/admin/add-resources`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ flowers: -amount })
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Remove flowers response:', data);
         
         if (data.success) {
           setRemoveFlowersInput('');
@@ -503,10 +529,22 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
           } else {
             Alert.alert('Succès', `${amount} fleurs retirées à l'utilisateur ${selectedUser?.email}!`);
           }
+        } else {
+          console.error('Failed to remove flowers:', data.message);
+          if (Platform.OS === 'web') {
+            alert(`Erreur: ${data.message || 'Échec du retrait des fleurs'}`);
+          } else {
+            Alert.alert('Erreur', data.message || 'Échec du retrait des fleurs');
+          }
         }
       } catch (error) {
         console.error('Error removing flowers:', error);
-        alert('Erreur lors du retrait des fleurs');
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        if (Platform.OS === 'web') {
+          alert(`Erreur lors du retrait des fleurs: ${errorMessage}`);
+        } else {
+          Alert.alert('Erreur', `Erreur lors du retrait des fleurs: ${errorMessage}`);
+        }
       }
     }
   };
@@ -525,12 +563,19 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
     if (!isNaN(amount) && amount > 0) {
       try {
         const { API_BASE_URL } = await import('../../../lib/config');
+        console.log('Adding tickets:', amount, 'to user:', selectedUserId);
         const response = await fetch(`${API_BASE_URL}/api/game/${selectedUserId}/admin/add-resources`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tickets: amount })
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Add tickets response:', data);
         
         if (data.success) {
           setTicketsInput('');
@@ -539,10 +584,22 @@ function ResourcesTab({ game }: { game: ReturnType<typeof useGame> }) {
           } else {
             Alert.alert('Succès', `${amount} tickets roulette ajoutés à l'utilisateur ${selectedUser?.email}!`);
           }
+        } else {
+          console.error('Failed to add tickets:', data.message);
+          if (Platform.OS === 'web') {
+            alert(`Erreur: ${data.message || 'Échec de l\'ajout des tickets'}`);
+          } else {
+            Alert.alert('Erreur', data.message || 'Échec de l\'ajout des tickets');
+          }
         }
       } catch (error) {
         console.error('Error adding tickets:', error);
-        alert('Erreur lors de l\'ajout des tickets');
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        if (Platform.OS === 'web') {
+          alert(`Erreur lors de l'ajout des tickets: ${errorMessage}`);
+        } else {
+          Alert.alert('Erreur', `Erreur lors de l'ajout des tickets: ${errorMessage}`);
+        }
       }
     }
   };

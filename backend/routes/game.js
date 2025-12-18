@@ -1164,13 +1164,27 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
     const { userId } = req.params;
     const { flowers, tickets, diamonds, honey, bvrCoins } = req.body;
 
+    console.log('\n🔧 === ADMIN ADD RESOURCES ===');
+    console.log('User ID:', userId);
+    console.log('Resources to add:', { flowers, tickets, diamonds, honey, bvrCoins });
+
     const gameState = await GameState.findOne({ userId });
     if (!gameState) {
+      console.error('❌ GameState not found for user:', userId);
       return res.status(404).json({
         success: false,
         message: 'Game state not found'
       });
     }
+
+    console.log('✅ GameState found');
+    console.log('Before update:', {
+      flowers: gameState.flowers,
+      tickets: gameState.tickets,
+      diamonds: gameState.diamonds,
+      honey: gameState.honey,
+      bvrCoins: gameState.bvrCoins
+    });
 
     // Add resources
     if (flowers) gameState.flowers += flowers;
@@ -1178,22 +1192,52 @@ router.post('/:userId/admin/add-resources', async (req, res) => {
     if (diamonds) gameState.diamonds += diamonds;
     if (honey) gameState.honey += honey;
     if (bvrCoins) gameState.bvrCoins += bvrCoins;
+    
+    gameState.lastUpdated = new Date();
 
-    await gameState.save();
-
-    res.json({
-      success: true,
-      message: 'Resources added successfully',
-      gameState: {
-        flowers: gameState.flowers,
-        tickets: gameState.tickets,
-        diamonds: gameState.diamonds,
-        honey: gameState.honey,
-        bvrCoins: gameState.bvrCoins
-      }
+    console.log('After update (before save):', {
+      flowers: gameState.flowers,
+      tickets: gameState.tickets,
+      diamonds: gameState.diamonds,
+      honey: gameState.honey,
+      bvrCoins: gameState.bvrCoins
     });
+
+    try {
+      const savedState = await gameState.save();
+      console.log('✅ GameState saved successfully');
+      console.log('After save:', {
+        flowers: savedState.flowers,
+        tickets: savedState.tickets,
+        diamonds: savedState.diamonds,
+        honey: savedState.honey,
+        bvrCoins: savedState.bvrCoins
+      });
+      console.log('=== ADMIN ADD RESOURCES COMPLETE ===\n');
+
+      res.json({
+        success: true,
+        message: 'Resources added successfully',
+        gameState: {
+          flowers: savedState.flowers,
+          tickets: savedState.tickets,
+          diamonds: savedState.diamonds,
+          honey: savedState.honey,
+          bvrCoins: savedState.bvrCoins
+        }
+      });
+    } catch (saveError) {
+      console.error('❌ CRITICAL: Failed to save GameState:', saveError);
+      console.error('Save error name:', saveError.name);
+      console.error('Save error message:', saveError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to save resources',
+        error: saveError.message
+      });
+    }
   } catch (error) {
-    console.error('Admin add resources error:', error);
+    console.error('❌ Admin add resources error:', error);
     res.status(500).json({
       success: false,
       message: 'Error adding resources',
