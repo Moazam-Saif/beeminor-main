@@ -705,11 +705,15 @@ router.post('/:userId/add-test-resources', async (req, res) => {
     // Get current game state
     let gameState = await GameState.findOne({ userId: req.params.userId });
     if (!gameState) {
+      console.error('[add-test-resources] GameState not found for userId:', req.params.userId);
       return res.status(404).json({
         success: false,
         message: 'Game state not found'
       });
     }
+
+    // Log before modification
+    console.log(`[add-test-resources] Before update: _id=${gameState._id}, userId=${gameState.userId}, flowers=${gameState.flowers}, diamonds=${gameState.diamonds}, bvrCoins=${gameState.bvrCoins}, honey=${gameState.honey}, tickets=${gameState.tickets}`);
 
     // Add resources
     if (honey) gameState.honey += honey;
@@ -718,33 +722,44 @@ router.post('/:userId/add-test-resources', async (req, res) => {
     if (diamonds) gameState.diamonds += diamonds;
     if (bvrCoins) gameState.bvrCoins += bvrCoins;
     if (typeof invitedFriends === 'number') gameState.invitedFriends = invitedFriends;
-    
-    gameState.lastUpdated = new Date();
-    await gameState.save();
 
-    res.json({
-      success: true,
-      message: 'Test resources added successfully',
-      added: { honey, flowers, tickets, diamonds, bvrCoins },
-      gameState: {
-        userId: gameState.userId.toString(),
-        honey: gameState.honey,
-        flowers: gameState.flowers,
-        diamonds: gameState.diamonds,
-        tickets: gameState.tickets,
-        bvrCoins: gameState.bvrCoins,
-        bees: Object.fromEntries(gameState.bees),
-        alveoles: Object.fromEntries(gameState.alveoles),
-        invitedFriends: gameState.invitedFriends,
-        claimedMissions: gameState.claimedMissions,
-        referrals: gameState.referrals,
-        totalReferralEarnings: gameState.totalReferralEarnings,
-        hasPendingFunds: gameState.hasPendingFunds,
-        transactions: gameState.transactions,
-        diamondsThisYear: gameState.diamondsThisYear,
-        yearStartDate: gameState.yearStartDate
-      }
-    });
+    gameState.lastUpdated = new Date();
+    try {
+      await gameState.save();
+      // Fetch again to confirm persistence
+      const freshGameState = await GameState.findOne({ userId: req.params.userId });
+      console.log(`[add-test-resources] After save: _id=${freshGameState._id}, userId=${freshGameState.userId}, flowers=${freshGameState.flowers}, diamonds=${freshGameState.diamonds}, bvrCoins=${freshGameState.bvrCoins}, honey=${freshGameState.honey}, tickets=${freshGameState.tickets}`);
+      res.json({
+        success: true,
+        message: 'Test resources added successfully',
+        added: { honey, flowers, tickets, diamonds, bvrCoins },
+        gameState: {
+          userId: freshGameState.userId.toString(),
+          honey: freshGameState.honey,
+          flowers: freshGameState.flowers,
+          diamonds: freshGameState.diamonds,
+          tickets: freshGameState.tickets,
+          bvrCoins: freshGameState.bvrCoins,
+          bees: Object.fromEntries(freshGameState.bees),
+          alveoles: Object.fromEntries(freshGameState.alveoles),
+          invitedFriends: freshGameState.invitedFriends,
+          claimedMissions: freshGameState.claimedMissions,
+          referrals: freshGameState.referrals,
+          totalReferralEarnings: freshGameState.totalReferralEarnings,
+          hasPendingFunds: freshGameState.hasPendingFunds,
+          transactions: freshGameState.transactions,
+          diamondsThisYear: freshGameState.diamondsThisYear,
+          yearStartDate: freshGameState.yearStartDate
+        }
+      });
+    } catch (saveError) {
+      console.error('[add-test-resources] Error saving GameState:', saveError);
+      return res.status(500).json({
+        success: false,
+        message: 'Error saving game state',
+        error: saveError.message
+      });
+    }
   } catch (error) {
     console.error('Add test resources error:', error);
     res.status(500).json({
