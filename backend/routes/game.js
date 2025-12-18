@@ -1,3 +1,25 @@
+// @route   GET /api/game/:userId/admin/list-all
+// @desc    Admin: List all GameState documents for a userId (debugging)
+// @access  Admin only (should be protected in production)
+router.get('/:userId/admin/list-all', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const allStates = await GameState.find({ userId });
+    console.log(`List all GameState for userId ${userId}:`, allStates);
+    res.json({
+      success: true,
+      count: allStates.length,
+      gameStates: allStates
+    });
+  } catch (error) {
+    console.error('Error listing all GameState for userId:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error listing all GameState',
+      error: error.message
+    });
+  }
+});
 const express = require('express');
 const router = express.Router();
 const GameState = require('../models/GameState');
