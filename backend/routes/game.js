@@ -80,25 +80,26 @@ router.get('/:userId', async (req, res) => {
 router.put('/:userId', async (req, res) => {
   try {
     const updates = req.body;
-    // console.log('\n\n🟦🟦🟦 PUT /api/game/:userId 🟦🟦🟦');
-    // console.log('User ID:', req.params.userId);
-    // console.log('Updates:', JSON.stringify(updates, null, 2));
-    
+    // Separate $inc and $set fields for atomic update
+    const incFields = {};
+    const setFields = { lastUpdated: new Date() };
+    // List of resource fields to support atomic increment
+    const resourceFields = ['flowers', 'bvrCoins', 'diamonds', 'honey', 'tickets'];
+    for (const key of Object.keys(updates)) {
+      if (resourceFields.includes(key) && typeof updates[key] === 'number') {
+        incFields[key] = updates[key];
+      } else {
+        setFields[key] = updates[key];
+      }
+    }
+    const updateQuery = {};
+    if (Object.keys(incFields).length > 0) updateQuery['$inc'] = incFields;
+    if (Object.keys(setFields).length > 0) updateQuery['$set'] = setFields;
     const gameState = await GameState.findOneAndUpdate(
       { userId: req.params.userId },
-      { 
-        ...updates,
-        lastUpdated: new Date()
-      },
+      updateQuery,
       { new: true, upsert: true }
     );
-    
-    // console.log('Updated GameState:');
-    // console.log('  - Flowers:', gameState.flowers);
-    // console.log('  - BVRCoins:', gameState.bvrCoins);
-    // console.log('  - LastUpdated:', gameState.lastUpdated);
-    // console.log('🟦🟦🟦 PUT COMPLETE 🟦🟦🟦\n\n');
-
     res.json({
       success: true,
       message: 'Game state updated successfully',
@@ -166,31 +167,26 @@ router.post('/:userId/buy-bee', async (req, res) => {
 
     const cost = BEE_COSTS[beeTypeId];
 
-    // Get current game state
-    let gameState = await GameState.findOne({ userId: req.params.userId });
+    // Atomically deduct flowers and add bee
+    const beeField = `bees.${beeTypeId}`;
+    const update = {
+      $inc: { flowers: -cost, [beeField]: 1 },
+      $set: { lastUpdated: new Date() }
+    };
+    const gameState = await GameState.findOneAndUpdate(
+      { userId: req.params.userId, flowers: { $gte: cost } },
+      update,
+      { new: true }
+    );
     if (!gameState) {
-      return res.status(404).json({
-        success: false,
-        message: 'Game state not found'
-      });
-    }
-
-    // Check if user has enough flowers
-    if (gameState.flowers < cost) {
+      // Not enough flowers or user not found
+      const currentState = await GameState.findOne({ userId: req.params.userId });
+      const current = currentState ? currentState.flowers : 0;
       return res.status(400).json({
         success: false,
-        message: `Not enough flowers. Need ${cost}, have ${gameState.flowers}`
+        message: `Not enough flowers. Need ${cost}, have ${current}`
       });
     }
-
-    // Deduct flowers and add bee
-    gameState.flowers -= cost;
-    const currentBeeCount = gameState.bees.get(beeTypeId) || 0;
-    gameState.bees.set(beeTypeId, currentBeeCount + 1);
-    gameState.lastUpdated = new Date();
-
-    await gameState.save();
-
     res.json({
       success: true,
       message: `Successfully purchased ${beeTypeId} bee`,
@@ -247,38 +243,35 @@ router.post('/:userId/sell-honey', async (req, res) => {
       });
     }
 
-    // Get current game state
-    let gameState = await GameState.findOne({ userId: req.params.userId });
-    if (!gameState) {
-      return res.status(404).json({
-        success: false,
-        message: 'Game state not found'
-      });
-    }
-
-    // Check if user has enough honey
-    if (gameState.honey < amount) {
-      return res.status(400).json({
-        success: false,
-        message: `Not enough honey. Have ${gameState.honey}, trying to sell ${amount}`
-      });
-    }
-
     // Calculate rewards (300 honey = 1 diamond + 1 flower + 2 BVR)
     const diamondsEarned = Math.floor(amount / 300);
     const flowersEarned = diamondsEarned;
     const bvrEarned = diamondsEarned * 2;
-
-    // Update game state
-    gameState.honey -= amount;
-    gameState.diamonds += diamondsEarned;
-    gameState.flowers += flowersEarned;
-    gameState.bvrCoins += bvrEarned;
-    gameState.diamondsThisYear += diamondsEarned;
-    gameState.lastUpdated = new Date();
-
-    await gameState.save();
-
+    // Atomically deduct honey and add rewards
+    const update = {
+      $inc: {
+        honey: -amount,
+        diamonds: diamondsEarned,
+        flowers: flowersEarned,
+        bvrCoins: bvrEarned,
+        diamondsThisYear: diamondsEarned
+      },
+      $set: { lastUpdated: new Date() }
+    };
+    const gameState = await GameState.findOneAndUpdate(
+      { userId: req.params.userId, honey: { $gte: amount } },
+      update,
+      { new: true }
+    );
+    if (!gameState) {
+      // Not enough honey or user not found
+      const currentState = await GameState.findOne({ userId: req.params.userId });
+      const current = currentState ? currentState.honey : 0;
+      return res.status(400).json({
+        success: false,
+        message: `Not enough honey. Have ${current}, trying to sell ${amount}`
+      });
+    }
     res.json({
       success: true,
       message: `Successfully sold ${amount} honey`,

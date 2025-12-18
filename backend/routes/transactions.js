@@ -78,40 +78,47 @@ router.post('/withdraw', async (req, res) => {
       });
     }
 
-    // Get game state to check balance
-    const gameState = await GameState.findOne({ userId });
-    if (!gameState) {
-      console.error('🟥 Game state not found for userId:', userId);
-      return res.status(404).json({
-        success: false,
-        message: 'Game state not found'
-      });
-    }
-
-    // Determine what to deduct based on currency and CHECK BALANCE
+    // Atomically check balance and deduct using findOneAndUpdate
+    let gameState;
     if (currency === 'BVR') {
-      if (gameState.bvrCoins < amount) {
-        console.error('🟥 Insufficient BVR', { current: gameState.bvrCoins, required: amount });
+      gameState = await GameState.findOneAndUpdate(
+        { userId, bvrCoins: { $gte: amount } },
+        { $inc: { bvrCoins: -amount }, $set: { lastUpdated: new Date() } },
+        { new: true }
+      );
+      if (!gameState) {
+        // Not enough BVR coins or user not found
+        const currentState = await GameState.findOne({ userId });
+        const current = currentState ? currentState.bvrCoins : 0;
+        console.error('🟥 Insufficient BVR', { current, required: amount });
         return res.status(400).json({
           success: false,
           message: 'Insufficient BVR coins',
-          current: gameState.bvrCoins,
+          current,
           required: amount
         });
       }
-      gameState.bvrCoins -= amount;
     } else {
-      if (gameState.flowers < amount) {
-        console.error('🟥 Insufficient flowers', { current: gameState.flowers, required: amount });
+      gameState = await GameState.findOneAndUpdate(
+        { userId, flowers: { $gte: amount } },
+        { $inc: { flowers: -amount }, $set: { lastUpdated: new Date() } },
+        { new: true }
+      );
+      if (!gameState) {
+        // Not enough flowers or user not found
+        const currentState = await GameState.findOne({ userId });
+        const current = currentState ? currentState.flowers : 0;
+        console.error('🟥 Insufficient flowers', { current, required: amount });
         return res.status(400).json({
           success: false,
           message: 'Insufficient flowers',
-          current: gameState.flowers,
+          current,
           required: amount
         });
       }
-      gameState.flowers -= amount;
     }
+    // Log the new balance after deduction
+    console.log('🟩 Deduction successful. New balances:', { bvrCoins: gameState.bvrCoins, flowers: gameState.flowers });
 
     // Create withdrawal transaction
     const transactionData = {
@@ -146,9 +153,7 @@ router.post('/withdraw', async (req, res) => {
     }
 
     try {
-      // Manual rollback approach: save gameState first, then transaction
-      // If transaction fails, we'll rollback the gameState
-      await gameState.save();
+      // Save the transaction after atomic deduction
       transactionCreated = transaction;
       await transaction.save();
 
